@@ -10,17 +10,19 @@ function datapoint_init() {
 
 function datapoint_menu() {
   $menu = array();
-  $menu['admin/datapoint/source/add/%'] = array(
+  $menu['admin/content/datapoint/source/add'] = array(
+    'title' => t('Add new data point source'),
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('datapoint_source_add', 4),
-    'access callback' => 'datapoint_access',
-    'access arguments' => array('add', 4),
+    'page arguments' => array('_datapoint_source_add'),
+    'access arguments' => array('administer datapoint sources'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+  $menu['datapoint/source/configuration_ahah'] = array(
+    'page callback' => 'datapoint_source_configuration_ahah',
+    'access arguments' => array('administer datapoint sources'),
+    'type' => MENU_CALLBACK,
   );
   return $menu;
-}
-
-function datapoint_access($op, $source_type) {
-  return user_access('administer datapoint sources');
 }
 
 function datapoint_perm() {
@@ -41,10 +43,58 @@ function datapoint_update_feed($fid) {
   curl_close($ch);
 }
 
-function datapoint_source_configuration_form(&$form) {
+function _datapoint_source_add() {
+  $form = array();
+  
+  $modules = module_implements('datapoint');
+  $source_types = array(
+    0 => t('-- Select a source type'),
+  );
+  foreach ($modules as $module) {
+    $info = call_user_func($module . '_datapoint');
+    $source_types[$module] = $info['name'];
+  }
+  
+  $form['sources'] = array(
+    '#type' => 'select',
+    '#title' => t('Source types'),
+    '#options' => $source_types,
+    '#default_value' => 0,
+    '#ahah' => array(
+      'method' => 'replace',
+      'wrapper' => 'source-configuration',
+      'path' => 'datapoint/source/configuration_ahah'
+    ),
+  );
+  
+  $form['configuration'] = array(
+    '#type' => 'markup',
+    '#prefix' => '<div id="source-configuration">',
+    '#suffix' => '</div>',
+    '#value' => t('Select a source type'),
+  );
+  
   $form['submit'] = array(
     '#type' => 'submit',
-    '#title' => t('Save'),
+    '#value' => t('Save'),
   );
+  
   return $form;
+}
+
+function datapoint_source_configuration_ahah() {
+  $cached_form_state = array();
+  $cached_form = form_get_cache($_POST['form_build_id'], $cached_form_state);
+  
+  $module = $_POST['sources'];
+  $info = call_user_func($module . '_datapoint');
+  $set = call_user_func($info['configuration'], array());
+  
+  $cached_form['configuration']['set'] = $set;
+  form_set_cache($_POST['form_build_id'], $cached_form, $cached_form_state);
+  $form_state = array('submitted' => FALSE);
+  $set = form_builder('datapoint_source_configuration_ahah', $set, $form_state);
+  $output = drupal_render($set);
+  print drupal_to_js(array('status' => TRUE, 'data' => $output));
+  exit;
 }

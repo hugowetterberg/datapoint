@@ -2,21 +2,23 @@
 
 function datapoint_yahooweather_datapoint() {
   return array(
+    'name' => t('Yahoo Weather'),
+    'configuration' => '_datapoint_yahooweather_configuration',
     'update_limit' => 60*60*3, //Three hours
   );
 }
 
-function datapoint_yahooweather_datapoint_source_configure($configuration) {
+function _datapoint_yahooweather_configuration($configuration) {
   $settings = array();
   $settings['city_code'] = array(
     '#type' => 'textfield',
     '#title' => t('Yahoo city code'),
     '#default_value' => $configuration['city_code'],
   );
-  return $form;
+  return $settings;
 }
 
-function datapoint_yahooweather_datapoint_source_configure_submit($form, $state) {
+function _datapoint_yahooweather_configuration_submit($form, $state) {
   var_dump($form, $state); die;
 }
 
