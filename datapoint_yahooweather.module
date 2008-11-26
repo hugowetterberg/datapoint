@@ -3,7 +3,7 @@
 function datapoint_yahooweather_datapoint() {
   return array(
     'source' => 'url',
-    'cron_limit' => 60*60*3,
+    'update_limit' => 60*60*3, //Three hour
   );
 }
 

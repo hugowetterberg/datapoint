@@ -8,9 +8,30 @@ function datapoint_init() {
   }
 }
 
+function datapoint_update_feed($fid) {
+  // $url is the resource path of the Y! Weather RSS
+  // with the appended querystring of zip code/location id.
+  $url = 'http://xml.weather.yahoo.com/forecastrss?p=SWXX0020&u=c';
+
+  // This function initializes CURL, sets the necessary CURL
+  // options, executes the request and returns the results.
+  $ch = curl_init();
+  curl_setopt($ch, CURLOPT_URL, $url);
+  curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+  $result = curl_exec($ch);
+  curl_close($ch);
+}
+
 function datapoint_vertex_module_schema($module) {
   $def = call_user_func($module '_vertex_schema');
   
+  $def['fields']['vid'] = array(
+    'description' => t('The unique identifier for the vertex.'),
+    'type' => 'serial',
+    'unsigned' => TRUE,
+    'not null' => TRUE,
+    'default' => 0,
+  );
   $def['fields']['pid'] = array(
     'description' => t('The unique identifier for the data point.'),
     'type' => 'int',
@@ -25,7 +46,7 @@ function datapoint_vertex_module_schema($module) {
     'not null' => TRUE,
     'default' => 0,
   );
-  $def['primary key'] = array('pid');
+  $def['primary key'] = array('vid');
   
   return array(
     $module . '_vertex' => $def,

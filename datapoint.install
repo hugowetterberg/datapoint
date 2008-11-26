@@ -1,0 +1,63 @@
+<?php
+
+function datapoint_schema() {
+  $schema = array();
+  
+  $schema['datapoint_source'] = array(
+    'fields' => array(
+      'sid' => array(
+        'description' => t('The unique identifier for the data point source.'),
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'name' => array(
+        'description' => t('The name of the feed.'),
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'module' => array(
+        'description' => t('The module that\'s responsible for handling the feed.'),
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'configuration' => array(
+        'description' => t('Serialized configuration data for the source.'),
+        'type' => 'text',
+        'not null' => TRUE,
+        'size' => 'big',
+      ),
+    ),
+  );
+  
+  $schema['datapoint'] = array(
+    'fields' => array(
+      'pid' => array(
+        'description' => t('The unique identifier for the data point.'),
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'vid' => array(
+        'description' => t('The currently active vertex.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'sid' => array(
+        'description' => t('The source for the data point.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+  );
+}
