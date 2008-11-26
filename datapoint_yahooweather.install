@@ -1,0 +1,14 @@
+<?php
+
+function datapoint_yahooweather_schema() {
+  $schema = datapoint_vertex_module_schema('datapoint_yahooweather');
+  return $schema;
+}
+
+function datapoint_yahooweather_install() {
+  drupal_install_schema('datapoint_yahooweather');
+}
+
+function datapoint_yahooweather_uninstall() {
+  drupal_install_schema('datapoint_yahooweather');
+}

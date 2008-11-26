@@ -1,0 +1,33 @@
+<?php
+require_once('datapoint.inc.php');
+
+function datapoint_init() {
+  $modules = module_implements('datapoint_update');
+  foreach ($modules as $module) {
+    $results = new DatapointResults();
+  }
+}
+
+function datapoint_vertex_module_schema($module) {
+  $def = call_user_func($module '_vertex_schema');
+  
+  $def['fields']['pid'] = array(
+    'description' => t('The unique identifier for the data point.'),
+    'type' => 'int',
+    'unsigned' => TRUE,
+    'not null' => TRUE,
+    'default' => 0,
+  );
+  $def['fields']['valid_from'] = array(
+    'description' => t('The start timestamp for the vertex.'),
+    'type' => 'int',
+    'unsigned' => TRUE,
+    'not null' => TRUE,
+    'default' => 0,
+  );
+  $def['primary key'] = array('pid');
+  
+  return array(
+    $module . '_vertex' => $def,
+  );
+}

@@ -1,0 +1,61 @@
+<?php
+
+function datapoint_yahooweather_datapoint() {
+  return array(
+    'source' => 'url',
+    'cron_limit' => 60*60*3,
+  );
+}
+
+function datapoint_yahooweather_datapoint_parseresult($data, &$results) {
+  $doc = new DOMDocument();
+  $doc->loadXML($data);
+  $items = $doc->getElementsByTagNameNS('http://xml.weather.yahoo.com/ns/rss/1.0', 'forecast');
+  foreach ($items as $item) {
+    print '<p>';
+    foreach ($item->attributes as $attr => $attrNode) {
+      $value = $attrNode->value;
+      if ($attr == 'date') {
+        $value = date('c', strtotime($value));
+      }
+      print $attr . ' = ' . $value . '<br/>';
+    }
+    print '</p>';
+  }
+}
+
+function datapoint_yahooweather_vertex_schema() {
+  return array(
+    'description' => t('Weather forecasts from Yahoo Weather'),
+    'fields' => array(
+      'low' => array(
+        'description' => t('The lowest temperature during the day.'),
+        'type' => 'int',
+        'unsigned' => FALSE,
+        'not null' => TRUE,
+        'default' => 0
+      ),
+      'high' => array(
+        'description' => t('The highest temperature during the day.'),
+        'type' => 'int',
+        'unsigned' => FALSE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'text' => array(
+        'description' => t('The english description of the weather conditions.'),
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'code' => array(
+        'description' => t('The code for the weather conditions.'),
+        'type' => 'int',
+        'unsigned' => FALSE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+  );
+}
