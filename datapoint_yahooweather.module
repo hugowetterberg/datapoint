@@ -2,9 +2,22 @@
 
 function datapoint_yahooweather_datapoint() {
   return array(
-    'source' => 'url',
-    'update_limit' => 60*60*3, //Three hour
+    'update_limit' => 60*60*3, //Three hours
   );
+}
+
+function datapoint_yahooweather_datapoint_source_configure($configuration) {
+  $settings = array();
+  $settings['city_code'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Yahoo city code'),
+    '#default_value' => $configuration['city_code'],
+  );
+  return $form;
+}
+
+function datapoint_yahooweather_datapoint_source_configure_submit($form, $state) {
+  var_dump($form, $state); die;
 }
 
 function datapoint_yahooweather_datapoint_parseresult($data, &$results) {
@@ -22,40 +35,4 @@ function datapoint_yahooweather_datapoint_parseresult($data, &$results) {
     }
     print '</p>';
   }
-}
-
-function datapoint_yahooweather_vertex_schema() {
-  return array(
-    'description' => t('Weather forecasts from Yahoo Weather'),
-    'fields' => array(
-      'low' => array(
-        'description' => t('The lowest temperature during the day.'),
-        'type' => 'int',
-        'unsigned' => FALSE,
-        'not null' => TRUE,
-        'default' => 0
-      ),
-      'high' => array(
-        'description' => t('The highest temperature during the day.'),
-        'type' => 'int',
-        'unsigned' => FALSE,
-        'not null' => TRUE,
-        'default' => 0,
-      ),
-      'text' => array(
-        'description' => t('The english description of the weather conditions.'),
-        'type' => 'varchar',
-        'length' => 64,
-        'not null' => TRUE,
-        'default' => '',
-      ),
-      'code' => array(
-        'description' => t('The code for the weather conditions.'),
-        'type' => 'int',
-        'unsigned' => FALSE,
-        'not null' => TRUE,
-        'default' => 0,
-      ),
-    ),
-  );
 }

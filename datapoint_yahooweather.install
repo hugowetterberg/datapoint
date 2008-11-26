@@ -1,4 +1,5 @@
 <?php
+require_once(drupal_get_path('module', 'datapoint') . '/datapoint.vertex-install.inc');
 
 function datapoint_yahooweather_schema() {
   $schema = datapoint_vertex_module_schema('datapoint_yahooweather');
@@ -10,5 +11,5 @@ function datapoint_yahooweather_install() {
 }
 
 function datapoint_yahooweather_uninstall() {
-  drupal_install_schema('datapoint_yahooweather');
+  drupal_uninstall_schema('datapoint_yahooweather');
 }

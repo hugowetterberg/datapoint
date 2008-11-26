@@ -1,11 +1,30 @@
 <?php
-require_once('datapoint.inc.php');
+require_once('datapoint.inc');
 
 function datapoint_init() {
   $modules = module_implements('datapoint_update');
   foreach ($modules as $module) {
     $results = new DatapointResults();
   }
+}
+
+function datapoint_menu() {
+  $menu = array();
+  $menu['admin/datapoint/source/add/%'] = array(
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('datapoint_source_add', 4),
+    'access callback' => 'datapoint_access',
+    'access arguments' => array('add', 4),
+  );
+  return $menu;
+}
+
+function datapoint_access($op, $source_type) {
+  return user_access('administer datapoint sources');
+}
+
+function datapoint_perm() {
+  return array('administer datapoint sources');
 }
 
 function datapoint_update_feed($fid) {
@@ -22,33 +41,10 @@ function datapoint_update_feed($fid) {
   curl_close($ch);
 }
 
-function datapoint_vertex_module_schema($module) {
-  $def = call_user_func($module '_vertex_schema');
-  
-  $def['fields']['vid'] = array(
-    'description' => t('The unique identifier for the vertex.'),
-    'type' => 'serial',
-    'unsigned' => TRUE,
-    'not null' => TRUE,
-    'default' => 0,
+function datapoint_source_configuration_form(&$form) {
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#title' => t('Save'),
   );
-  $def['fields']['pid'] = array(
-    'description' => t('The unique identifier for the data point.'),
-    'type' => 'int',
-    'unsigned' => TRUE,
-    'not null' => TRUE,
-    'default' => 0,
-  );
-  $def['fields']['valid_from'] = array(
-    'description' => t('The start timestamp for the vertex.'),
-    'type' => 'int',
-    'unsigned' => TRUE,
-    'not null' => TRUE,
-    'default' => 0,
-  );
-  $def['primary key'] = array('vid');
-  
-  return array(
-    $module . '_vertex' => $def,
-  );
+  return $form;
 }

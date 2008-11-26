@@ -1,8 +1,16 @@
 <?php
 
+function datapoint_install() {
+  drupal_install_schema('datapoint');
+}
+
+function datapoint_uninstall() {
+  drupal_uninstall_schema('datapoint');
+}
+
 function datapoint_schema() {
   $schema = array();
-  
+
   $schema['datapoint_source'] = array(
     'fields' => array(
       'sid' => array(
@@ -10,7 +18,6 @@ function datapoint_schema() {
         'type' => 'serial',
         'unsigned' => TRUE,
         'not null' => TRUE,
-        'default' => 0,
       ),
       'name' => array(
         'description' => t('The name of the feed.'),
@@ -33,8 +40,9 @@ function datapoint_schema() {
         'size' => 'big',
       ),
     ),
+    'primary key' => array('sid'),
   );
-  
+
   $schema['datapoint'] = array(
     'fields' => array(
       'pid' => array(
@@ -42,7 +50,6 @@ function datapoint_schema() {
         'type' => 'serial',
         'unsigned' => TRUE,
         'not null' => TRUE,
-        'default' => 0,
       ),
       'vid' => array(
         'description' => t('The currently active vertex.'),
@@ -58,6 +65,22 @@ function datapoint_schema() {
         'not null' => TRUE,
         'default' => 0,
       ),
+      'external_id' => array(
+        'description' => t('The external id for the data point.'),
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'name' => array(
+        'description' => t('The name of the feed.'),
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+        'default' => '',
+      ),
     ),
+    'primary key' => array('pid'),
   );
+  return $schema;
 }
