@@ -10,7 +10,7 @@ function datapoint_uninstall() {
 
 function datapoint_schema() {
   $schema = array();
-
+  
   $schema['datapoint_source'] = array(
     'fields' => array(
       'sid' => array(
@@ -42,7 +42,32 @@ function datapoint_schema() {
     ),
     'primary key' => array('sid'),
   );
-
+  
+  $schema['datapoint_source_type'] = array(
+    'fields' => array(
+      'stid' => array(
+        'description' => t('The unique identifier for the data point source type.'),
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'name' => array(
+        'description' => t('The name of the source type.'),
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'configuration' => array(
+        'description' => t('Serialized configuration data for the source type.'),
+        'type' => 'text',
+        'not null' => TRUE,
+        'size' => 'big',
+      ),
+    ),
+    'primary key' => array('stid'),
+  );
+  
   $schema['datapoint'] = array(
     'fields' => array(
       'pid' => array(

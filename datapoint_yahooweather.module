@@ -1,6 +1,6 @@
 <?php
 
-function datapoint_yahooweather_datapoint() {
+function datapoint_yahooweather_datapoint_parser() {
   return array(
     'name' => t('Yahoo Weather'),
     'configuration' => '_datapoint_yahooweather_configuration',
