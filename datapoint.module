@@ -10,7 +10,13 @@ function datapoint_init() {
 
 function datapoint_menu() {
   $menu = array();
-  $menu['admin/content/datapoint/source/add'] = array(
+  $menu['admin/content/datapoint'] = array(
+    'title' => t('Data points'),
+    'page callback' => '_data_point_admin_index_page',
+    'access arguments' => array('administer datapoint sources'),
+    'type' => MENU_NORMAL_ITEM,
+  );
+  $menu['admin/content/datapoint/add-source'] = array(
     'title' => t('Add new data point source'),
     'page callback' => 'drupal_get_form',
     'page arguments' => array('_datapoint_source_add'),
@@ -27,6 +33,15 @@ function datapoint_menu() {
 
 function datapoint_perm() {
   return array('administer datapoint sources');
+}
+
+function _data_point_admin_index_page() {
+  return theme('links', array(
+    'add-source' => array(
+      'title' => t('Add new data point source'),
+      'href' => 'admin/content/datapoint/add-source',
+    ),
+  ));
 }
 
 function datapoint_update_feed($fid) {

@@ -4,7 +4,7 @@ function datapoint_yahooweather_datapoint() {
   return array(
     'name' => t('Yahoo Weather'),
     'configuration' => '_datapoint_yahooweather_configuration',
-    'update_limit' => 60*60*3, //Three hours
+    'update limit' => 60*60*3, //Three hours
   );
 }
 
