@@ -41,14 +41,17 @@ function datapoint_menu() {
     'file' => 'datapoint.admin.inc',
     'type' => MENU_NORMAL_ITEM,
   );
-  $menu['datapoint/source_configuration_ahah'] = array(
-    'page callback' => 'datapoint_source_configuration_ahah',
+  $menu['admin/content/datapoint/add-source-type/%/%'] = array(
+    'title' => 'Source type settings',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('_data_point_admin_add_source_type_configure', 4, 5),
     'access arguments' => array('administer datapoint sources'),
     'file' => 'datapoint.admin.inc',
     'type' => MENU_CALLBACK,
   );
-  $menu['datapoint/node_configuration_ahah'] = array(
-    'page callback' => 'datapoint_node_configuration_ahah',
+  $menu['datapoint/ahah/field_source_configuration/%/%'] = array(
+    'page callback' => 'datapoint_ahah_field_source_configuration',
+    'page arguments' => array(3, 4),
     'access arguments' => array('administer datapoint sources'),
     'file' => 'datapoint.admin.inc',
     'type' => MENU_CALLBACK,
@@ -58,6 +61,73 @@ function datapoint_menu() {
 
 function datapoint_perm() {
   return array('administer datapoint sources');
+}
+
+function datapoint_source_fields($parser) {
+  static $cache = array();
+
+  if (!isset($cache[$parser])) {
+    $schema = datapoint_vertex_module_schema($parser);
+    $schema_fields = $schema[$parser . '_vertex']['fields'];
+
+    $source_fields = array(
+      'datapoint_name' => array(
+        'callback' => '_datapoint_source_fields',
+        'description' => t('The name of the data point'),
+      ),
+      'datapoint_external_id' => array(
+        'callback' => '_datapoint_source_fields',
+        'description' => t('The external id for the data point'),
+      ),
+    );
+    
+    foreach ($schema_fields as $key => $column) {
+      $source_fields['vertex_schema_' . $key] = array(
+        'description' => $column['description'],
+        'callback' => '_datapoint_source_fields',
+        'vertex_attribute' => $key,
+      );
+    }
+    
+    drupal_alter('datapoint_source_fields', $source_fields, $parser);
+    $cache[$parser] = $source_fields;
+  }
+
+  return $cache[$parser];
+}
+
+function _datapoint_source_fields($field_name, $field, $datapoint, $vertex) {
+  switch ($field_name) {
+    case 'datapoint_name':
+      return $datapoint->name;
+    break;
+    case 'datapoint_external_id':
+      return $datapoint->external_id;
+    break;
+    default:
+      // Check if this simply is a reference to a vertex attribute
+      // TODO: Maybe this could be a viable method to get the datapoint attributes too
+      if (isset($field['vertex_attribute'])) {
+        $a = $field['vertex_attribute'];
+        if (isset($vertex->$a)) {
+          return $vertex->$a;
+        }
+      }
+    break;
+  }
+}
+
+function datapoint_managed_fields($content_type) {
+  static $cache = array();
+
+  if (!isset($cache[$content_type])) {
+    $type = node_get_types('type', $content_type);
+    $fields = array();
+    drupal_alter('datapoint_managed_fields', $fields, $type);
+    return $cache[$content_type] = $fields;
+  }
+
+  return $cache[$content_type];
 }
 
 function datapoint_update_feed($fid) {

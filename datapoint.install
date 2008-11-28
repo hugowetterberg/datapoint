@@ -33,6 +33,13 @@ function datapoint_schema() {
         'not null' => TRUE,
         'default' => '',
       ),
+      'last_update' => array(
+        'description' => t('The last time the source was updated.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
       'configuration' => array(
         'description' => t('Serialized configuration data for the source.'),
         'type' => 'text',

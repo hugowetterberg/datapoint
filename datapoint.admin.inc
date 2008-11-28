@@ -1,22 +1,17 @@
 <?php
 
 function _data_point_admin_index_page() {
-  return theme('links', array(
-    'add-source' => array(
-      'title' => t('Add new data point source'),
-      'href' => 'admin/content/datapoint/add-source',
-    ),
-  ));
+  return 'Index?';
 }
 
 function _data_point_admin_source_types() {
   return 'List?';
 }
 
-function _data_point_admin_add_source_type() {
+function _data_point_admin_add_source_type($state) {
   //Build the parser options
   $modules = module_implements('datapoint_parser');
-  $parsers = array('' => t('-- Select a node parser'));
+  $parsers = array('' => t('-- Select a data parser'));
   foreach ($modules as $module) {
     $info = call_user_func($module . '_datapoint_parser');
     $parsers[$module] = $info['name'];
@@ -58,8 +53,77 @@ function _data_point_admin_add_source_type() {
   return $form;
 }
 
-function _data_point_admin_add_source_type_submit($form, $form_state) {
+function _data_point_admin_add_source_type_configure($form_state, $parser, $content_type) {
+  // Build the data point field options
+  $dp_fields = datapoint_source_fields($parser);
+  $dp_field_options = array_merge(array('' => t('-- Empty')));
+  foreach ($dp_fields as $name => $def) {
+    $dp_field_options[$name] = $def['description'];
+  }
   
+  $fields = datapoint_managed_fields($content_type);
+  $form = array();
+  
+  foreach ($fields as $name => $finfo) {
+    $form['field_source_' . $name] = array(
+      '#type' => 'select',
+      '#title' => $finfo['label'],
+      '#required' => isset($finfo['required']) && $finfo['required'],
+      '#options' => $dp_field_options,
+      '#ahah' => array(
+        'method' => 'replace',
+        'wrapper' => 'field-source-' . $name . '-configuration',
+        'path' => 'datapoint/field_source_configuration_ahah/' . $content_type . '/'  . $name,
+      ),
+    );
+  }
+  
+  return $form;
+}
+
+function datapoint_ahah_field_source_configuration($content_type, $field) {
+  $cached_form_state = array();
+  $cached_form = form_get_cache($_POST['form_build_id'], $cached_form_state);
+  
+  $module = $_POST['source_type'];
+  
+  $cached_form['source_configuration'] = $set;
+  form_set_cache($_POST['form_build_id'], $cached_form, $cached_form_state);
+  $form_state = array('submitted' => FALSE);
+  $set = form_builder('datapoint_source_configuration_ahah', $set, $form_state);
+  $output = drupal_render($set);
+  print drupal_to_js(array('status' => TRUE, 'data' => $output));
+  exit;
+}
+
+function datapoint_datapoint_managed_fields_alter(&$fields, $type) {
+  if ($type->has_title) {
+    $fields['title'] = array(
+      'label' => $type->title_label,
+      'required' => TRUE,
+      'setter' => '_datapoint_set_node_title',
+    );
+  }
+  if ($type->has_body) {
+    $fields['body'] = array(
+      'label' => $type->body_label,
+      'required' => $type->min_word_count>0,
+      'setter' => '_datapoint_set_node_body',
+    );
+  }
+}
+
+function _datapoint_set_node_title(&$node, $value) {
+  $node->title = $value;
+}
+
+function _datapoint_set_node_body(&$node, $value) {
+  $node->body = $value;
+}
+
+function _data_point_admin_add_source_type_submit($form, $form_state) {
+  $values = $form_state['values'];
+  drupal_goto('admin/content/datapoint/add-source-type/' . $values['parser_type'] . '/' . $values['content_type']);
 }
 
 function _datapoint_source_type_configure($form_state, $module) {
