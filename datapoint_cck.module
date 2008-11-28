@@ -1,0 +1,53 @@
+<?php
+
+/**
+ * Implementation of hook_datapoint_managed_fields_alter
+ *
+ * @return void
+ **/
+function datapoint_cck_datapoint_managed_fields_alter(&$fields, $type) {
+  $cck_fields = content_fields();
+  foreach ($cck_fields as $field_name => $field) {
+    if ($field['type_name']==$type->type) {
+      $setter = _datapoint_cck_setters($field['type']);
+      
+      if ($setter) {
+        $fields['cck_' . $field_name] = array(
+          'field_name' => $field_name,
+          'label' => $field['widget']['label'],
+          'required' => $field['required'],
+          'setter' => $setter,
+        );
+      }
+    }
+  }
+}
+
+function _datapoint_cck_setters($type) {
+  switch($type) {
+    case 'text':
+      return '_datapoint_cck_set_text';
+    break;
+    case 'number_integer':
+      return '_datapoint_cck_set_integer';
+    break;
+    case 'number_float':
+      return '_datapoint_cck_set_float';
+    break;
+  }
+}
+
+function _datapoint_cck_set_text(&$node, $field, $value) {
+  $field_name = $field['field_name'];
+  $node->$field_name = array(array('value'=>$value));
+}
+
+function _datapoint_cck_set_integer(&$node, $field, $value) {
+  $field_name = $field['field_name'];
+  $node->$field_name = array(array('value'=>intval($value)));
+}
+
+function _datapoint_cck_set_float(&$node, $field, $value) {
+  $field_name = $field['field_name'];
+  $node->$field_name = array(array('value'=>floatval($value)));
+}

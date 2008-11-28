@@ -1,0 +1,7 @@
+name = "CCK integration"
+version = "6.x-0.1"
+core = "6.x"
+description = "Module that integrates CCK with Datapoint"
+dependencies[] = datapoint
+dependencies[] = content
+package = Datapoint

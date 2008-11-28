@@ -117,6 +117,34 @@ function _datapoint_source_fields($field_name, $field, $datapoint, $vertex) {
   }
 }
 
+/**
+ * Loads the data point source type
+ *
+ * @return array Source type configuration
+ **/
+function data_point_source_type($type) {
+  $res = db_query("SELECT configuration FROM {datapoint_source_type} WHERE type='%s'", $type);
+  if ($source = db_fetch_object($res)) {
+    return $source;
+  }
+  return FALSE;
+}
+
+/**
+ * Saves a source type configuration in the database
+ *
+ * @return void
+ **/
+function data_point_add_source_type($configuration) {
+  db_query("INSERT INTO {datapoint_source_type}(type, name, configuration) VALUES('%s','%s','%s')", 
+    $configuration['type'], $configuration['name'], serialize($configuration));
+}
+
+/**
+ * Gets the fields that datapoint feeds can access in nodes of specific type
+ *
+ * @return void
+ **/
 function datapoint_managed_fields($content_type) {
   static $cache = array();
 
@@ -124,10 +152,41 @@ function datapoint_managed_fields($content_type) {
     $type = node_get_types('type', $content_type);
     $fields = array();
     drupal_alter('datapoint_managed_fields', $fields, $type);
+    
     return $cache[$content_type] = $fields;
   }
 
   return $cache[$content_type];
+}
+
+/**
+ * Implementation of hook_datapoint_managed_fields_alter
+ *
+ * @return void
+ **/
+function datapoint_datapoint_managed_fields_alter(&$fields, $type) {
+  if ($type->has_title) {
+    $fields['title'] = array(
+      'label' => $type->title_label,
+      'required' => TRUE,
+      'setter' => '_datapoint_set_node_title',
+    );
+  }
+  if ($type->has_body) {
+    $fields['body'] = array(
+      'label' => $type->body_label,
+      'required' => $type->min_word_count>0,
+      'setter' => '_datapoint_set_node_body',
+    );
+  }
+}
+
+function _datapoint_set_node_title(&$node, $field, $value) {
+  $node->title = $value;
+}
+
+function _datapoint_set_node_body(&$node, $field, $value) {
+  $node->body = $value;
 }
 
 function datapoint_update_feed($fid) {

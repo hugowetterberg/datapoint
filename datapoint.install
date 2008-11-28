@@ -19,6 +19,13 @@ function datapoint_schema() {
         'unsigned' => TRUE,
         'not null' => TRUE,
       ),
+      'source_type' => array(
+        'description' => t('The type of the source.'),
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+        'default' => '',
+      ),
       'name' => array(
         'description' => t('The name of the feed.'),
         'type' => 'varchar',
@@ -52,14 +59,15 @@ function datapoint_schema() {
   
   $schema['datapoint_source_type'] = array(
     'fields' => array(
-      'stid' => array(
-        'description' => t('The unique identifier for the data point source type.'),
-        'type' => 'serial',
-        'unsigned' => TRUE,
+      'type' => array(
+        'description' => t('The machine-readable name of this content type.'),
+        'type' => 'varchar',
+        'length' => 64,
         'not null' => TRUE,
+        'default' => '',
       ),
       'name' => array(
-        'description' => t('The name of the source type.'),
+        'description' => t('The human-readable name of this content type.'),
         'type' => 'varchar',
         'length' => 64,
         'not null' => TRUE,
@@ -72,7 +80,7 @@ function datapoint_schema() {
         'size' => 'big',
       ),
     ),
-    'primary key' => array('stid'),
+    'primary key' => array('type'),
   );
   
   $schema['datapoint'] = array(
