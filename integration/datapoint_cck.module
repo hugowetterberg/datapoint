@@ -10,7 +10,7 @@ function datapoint_cck_datapoint_managed_fields_alter(&$fields, $type) {
   foreach ($cck_fields as $field_name => $field) {
     if ($field['type_name']==$type->type) {
       $setter = _datapoint_cck_setters($field['type']);
-      
+
       if ($setter) {
         $fields['cck_' . $field_name] = array(
           'field_name' => $field_name,

@@ -72,14 +72,14 @@ function _datapoint_admin_add_source_type_configure($form_state, $parser, $conte
       '#value' => $content_type,
     ),
   );
-  
+
   $form['type'] = array(
     '#type' => 'textfield',
     '#title' => t('Type'),
     '#required' => TRUE,
     '#description' => t('The machine-readable name of this source type. This name must contain only lowercase letters, numbers, and underscores. This name must be unique.'),
   );
-  
+
   $form['name'] = array(
     '#type' => 'textfield',
     '#title' => t('Name'),
@@ -91,7 +91,7 @@ function _datapoint_admin_add_source_type_configure($form_state, $parser, $conte
     '#type' => 'fieldset',
     '#title' => t('Field mappings'),
   );
-  
+
   foreach ($fields as $name => $finfo) {
     $form['field_mappings']['field_source_' . $name] = array(
       '#type' => 'select',
@@ -112,7 +112,7 @@ function _datapoint_admin_add_source_type_configure($form_state, $parser, $conte
       '#value' => '<span></span>',
     );
   }
-  
+
   // Simulate a node form to get the taxonomy module to provide taxonomy fields
   $tax = array();
   $tax['type'] = array('#type' => 'value', '#value' => $content_type);
@@ -153,7 +153,7 @@ function _datapoint_admin_add_source_type_configure_submit($form, $form_state) {
 function source_type_configuration_from_form_values($values) {
   $parser = $values['parser'];
   $content_type = $values['content_type'];
-  
+
   $configuration = array(
     'type' => $values['type'],
     'name' => $values['name'],
@@ -311,10 +311,10 @@ function source_configuration_from_form_values($values) {
     'name' => $values['source_name'],
     'taxonomy' => taxonomy_preview_terms((object)$values),
   );
-  
+
   $type = datapoint_source_type($values['source_type']);
   $configuration['parser'] = $type['parser'];
-  
+
   $info = datapoint_parser_info($type['parser']);
   if (isset($info['source configuration submit'])) {
     $configuration['source configuration'] = call_user_func($info['source configuration submit'], $values);
@@ -373,7 +373,7 @@ function datapoint_source_configuration_form($type, $configuration) {
   else {
     $form = array();
   }
-  
+
   // Simulate a node form to get the taxonomy module to alter our form
   $form['type'] = array('#type' => 'value', '#value' => $type['content_type']);
   $form['#node'] = (object)array(
@@ -382,7 +382,7 @@ function datapoint_source_configuration_form($type, $configuration) {
     'taxonomy' => $type['taxonomy'],
   );
   taxonomy_form_alter($form, array(), $type['content_type'] . '_node_form');
-  
+
   //Remove the attributes needed for taxonomy_form_alter
   unset($form['type']);
   unset($form['#node']);
@@ -422,14 +422,14 @@ function datapoint_parser_info($parser_module) {
 
 function datapoint_update_source($sid) {
   $source = datapoint_source($sid);
-  
+
   if ($source) {
     $parser = datapoint_parser_info($source['parser']);
     if (is_callable($parser['fetch'])) {
       require_once('datapoint.inc');
       $results = new DatapointResults();
       call_user_func($parser['fetch'], $source, $results);
-      
+
       foreach($results as )
     }
   }

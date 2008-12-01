@@ -10,7 +10,7 @@ function datapoint_uninstall() {
 
 function datapoint_schema() {
   $schema = array();
-  
+
   $schema['datapoint_source'] = array(
     'fields' => array(
       'sid' => array(
@@ -56,7 +56,7 @@ function datapoint_schema() {
     ),
     'primary key' => array('sid'),
   );
-  
+
   $schema['datapoint_source_type'] = array(
     'fields' => array(
       'type' => array(
@@ -82,7 +82,7 @@ function datapoint_schema() {
     ),
     'primary key' => array('type'),
   );
-  
+
   $schema['datapoint'] = array(
     'fields' => array(
       'pid' => array(

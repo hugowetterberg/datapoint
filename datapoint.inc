@@ -2,18 +2,18 @@
 
 class DatapointResults implements IteratorAggregate {
   private $points;
-  
+
   function DatapointResults() {
     $this->points = array();
   }
-  
+
   public function point($identifier) {
     if (!isset($this->points[$identifier])) {
       $this->points[$identifier] = new Datapoint($identifier);
     }
     return $this->points[$identifier];
   }
-  
+
   public function getIterator() {
     return new DatapointIterator($this->points);
   }
@@ -24,25 +24,25 @@ class Datapoint implements IteratorAggregate {
   private $externalId;
   private $fromTime;
   private $name;
-  
+
   function Datapoint($externalId) {
     $this->externalId = $externalId;
     $this->vertexes = array();
     $this->fromTime = Null;
   }
-  
+
   public function id() {
     return $this->externalId;
   }
-  
+
   public function getName() {
     return $this->name;
   }
-  
+
   public function setName($value) {
     $this->name = $value;
   }
-  
+
   public function addVertex($vertex) {
     // Keep track of
     if ($this->fromTime == Null) {
@@ -51,10 +51,10 @@ class Datapoint implements IteratorAggregate {
     else {
       $this->fromTime = min($vertex->getTime(), $this->fromTime);
     }
-    
+
     $this->vertexes[] = $vertex;
   }
-  
+
   public static function xmlAttribute($node, $name, $ns=NULL) {
     if (!empty($ns)) {
       if ($node->hasAttributeNS($ns, $name)) {
@@ -66,10 +66,10 @@ class Datapoint implements IteratorAggregate {
         return $node->getAttribute($name);
       }
     }
-    
+
     return NULL;
   }
-  
+
   public function getIterator() {
     return new DatapointIterator($this->vertexes);
   }
@@ -78,19 +78,19 @@ class Datapoint implements IteratorAggregate {
 class DatapointVertex {
   private $values;
   private $time;
-  
+
   function DatapointVertex($time) {
     $this->time = $time;
   }
-  
+
   public function getTime() {
     return $this->time;
   }
-  
+
   public function value($name, $value) {
     $this->values[$name] = $value;
   }
-  
+
   public function xmlAttributes($node, $mapping, $ns=NULL) {
     foreach ($mapping as $attribute => $value_name) {
       $av = Datapoint::xmlAttribute($node, $attribute, $ns);
@@ -99,7 +99,7 @@ class DatapointVertex {
       }
     }
   }
-  
+
   public function getValues() {
     return $this->values;
   }

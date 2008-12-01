@@ -49,7 +49,7 @@ function datapoint_menu() {
     'file' => 'datapoint.admin.inc',
     'type' => MENU_CALLBACK,
   );
-  
+
   // Ping
   $menu['datapoint/ping/%'] = array(
     'page callback' => 'datapoint_update_source',
@@ -57,7 +57,7 @@ function datapoint_menu() {
     'access arguments' => array('datapoint use ping'),
     'file' => 'datapoint.admin.inc',
   );
-  
+
   // Ahah callbacks
   $menu['datapoint/ahah/field-source-configuration/%/%'] = array(
     'page callback' => 'datapoint_ahah_field_source_configuration',
@@ -79,7 +79,7 @@ function datapoint_menu() {
     'file' => 'datapoint.admin.inc',
     'type' => MENU_CALLBACK,
   );
-  
+
   return $menu;
 }
 
@@ -104,7 +104,7 @@ function datapoint_source_fields($parser) {
         'description' => t('The external id for the data point'),
       ),
     );
-    
+
     foreach ($schema_fields as $key => $column) {
       $source_fields['vertex_schema_' . $key] = array(
         'description' => $column['description'],
@@ -112,7 +112,7 @@ function datapoint_source_fields($parser) {
         'vertex_attribute' => $key,
       );
     }
-    
+
     drupal_alter('datapoint_source_fields', $source_fields, $parser);
     $cache[$parser] = $source_fields;
   }
@@ -173,7 +173,7 @@ function datapoint_source($sid) {
  * @return void
  **/
 function datapoint_add_source_type($configuration) {
-  db_query("INSERT INTO {datapoint_source_type}(type, name, configuration) VALUES('%s','%s','%s')", 
+  db_query("INSERT INTO {datapoint_source_type}(type, name, configuration) VALUES('%s','%s','%s')",
     $configuration['type'], $configuration['name'], serialize($configuration));
 }
 
@@ -184,7 +184,7 @@ function datapoint_add_source_type($configuration) {
  **/
 function datapoint_add_source($configuration) {
   db_query("INSERT INTO {datapoint_source}(source_type, name, last_update, configuration)
-    VALUES('%s','%s','%s',0,'%s')", 
+    VALUES('%s','%s','%s',0,'%s')",
     $configuration['type'], $configuration['name'], serialize($configuration));
 }
 
@@ -214,7 +214,7 @@ function datapoint_managed_fields($content_type) {
     $type = node_get_types('type', $content_type);
     $fields = array();
     drupal_alter('datapoint_managed_fields', $fields, $type);
-    
+
     return $cache[$content_type] = $fields;
   }
 
@@ -259,6 +259,6 @@ function datapoint_url_fetch($url, &$result, $callback) {
   curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
   $data = curl_exec($ch);
   curl_close($ch);
-  
+
   call_user_func($callback, $data, $result);
 }
