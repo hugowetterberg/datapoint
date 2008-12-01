@@ -13,7 +13,7 @@ function datapoint_menu() {
   $menu = array();
   $menu['admin/content/datapoint'] = array(
     'title' => 'Data points',
-    'page callback' => '_data_point_admin_index_page',
+    'page callback' => '_datapoint_admin_index_page',
     'access arguments' => array('administer datapoint sources'),
     'file' => 'datapoint.admin.inc',
     'type' => MENU_NORMAL_ITEM,
@@ -27,35 +27,51 @@ function datapoint_menu() {
     'type' => MENU_NORMAL_ITEM,
   );
   $menu['admin/content/datapoint/source-types'] = array(
-    'title' => 'Data point source types',
-    'page callback' => '_data_point_admin_source_types',
+    'title' => 'Source types',
+    'page callback' => '_datapoint_admin_source_types',
     'access arguments' => array('administer datapoint sources'),
     'file' => 'datapoint.admin.inc',
     'type' => MENU_NORMAL_ITEM,
   );
-  $menu['admin/content/datapoint/add-source-type'] = array(
+  $menu['admin/content/datapoint/source-types/add'] = array(
     'title' => 'Add source type',
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('_data_point_admin_add_source_type'),
+    'page arguments' => array('_datapoint_admin_add_source_type'),
     'access arguments' => array('administer datapoint sources'),
     'file' => 'datapoint.admin.inc',
     'type' => MENU_NORMAL_ITEM,
   );
-  $menu['admin/content/datapoint/add-source-type/%/%'] = array(
+  $menu['admin/content/datapoint/source-types/add/%/%'] = array(
     'title' => 'Source type settings',
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('_data_point_admin_add_source_type_configure', 4, 5),
+    'page arguments' => array('_datapoint_admin_add_source_type_configure', 5, 6),
     'access arguments' => array('administer datapoint sources'),
     'file' => 'datapoint.admin.inc',
     'type' => MENU_CALLBACK,
   );
-  $menu['datapoint/ahah/field_source_configuration/%/%'] = array(
+  
+  // Ahah callbacks
+  $menu['datapoint/ahah/field-source-configuration/%/%'] = array(
     'page callback' => 'datapoint_ahah_field_source_configuration',
     'page arguments' => array(3, 4),
     'access arguments' => array('administer datapoint sources'),
     'file' => 'datapoint.admin.inc',
     'type' => MENU_CALLBACK,
   );
+  $menu['datapoint/ahah/source_configuration'] = array(
+    'page callback' => 'datapoint_ahah_source_configuration',
+    'access arguments' => array('administer datapoint sources'),
+    'file' => 'datapoint.admin.inc',
+    'type' => MENU_CALLBACK,
+  );
+  $menu['datapoint/ahah/custom-node-configuration'] = array(
+    'page callback' => 'datapoint_ahah_custom_node_configuration',
+    'page arguments' => array(3, 4),
+    'access arguments' => array('administer datapoint sources'),
+    'file' => 'datapoint.admin.inc',
+    'type' => MENU_CALLBACK,
+  );
+  
   return $menu;
 }
 
@@ -122,10 +138,10 @@ function _datapoint_source_fields($field_name, $field, $datapoint, $vertex) {
  *
  * @return array Source type configuration
  **/
-function data_point_source_type($type) {
+function datapoint_source_type($type) {
   $res = db_query("SELECT configuration FROM {datapoint_source_type} WHERE type='%s'", $type);
   if ($source = db_fetch_object($res)) {
-    return $source;
+    return unserialize($source->configuration);
   }
   return FALSE;
 }
@@ -135,9 +151,34 @@ function data_point_source_type($type) {
  *
  * @return void
  **/
-function data_point_add_source_type($configuration) {
+function datapoint_add_source_type($configuration) {
   db_query("INSERT INTO {datapoint_source_type}(type, name, configuration) VALUES('%s','%s','%s')", 
     $configuration['type'], $configuration['name'], serialize($configuration));
+}
+
+/**
+ * Saves a source in the database
+ *
+ * @return void
+ **/
+function datapoint_add_source($configuration) {
+  db_query("INSERT INTO {datapoint_source}(source_type, name, last_update, configuration)
+    VALUES('%s','%s','%s',0,'%s')", 
+    $configuration['type'], $configuration['name'], serialize($configuration));
+}
+
+/**
+ * Gets the defined source types as a associative array type=>name
+ *
+ * @return void
+ **/
+function datapoint_source_types() {
+  $types = array();
+  $res = db_query("SELECT type, name FROM {datapoint_source_type}");
+  while ($o = db_fetch_object($res)) {
+    $types[$o->type] = $o->name;
+  }
+  return $types;
 }
 
 /**

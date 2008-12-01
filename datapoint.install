@@ -33,13 +33,6 @@ function datapoint_schema() {
         'not null' => TRUE,
         'default' => '',
       ),
-      'module' => array(
-        'description' => t('The module that\'s responsible for handling the feed.'),
-        'type' => 'varchar',
-        'length' => 32,
-        'not null' => TRUE,
-        'default' => '',
-      ),
       'last_update' => array(
         'description' => t('The last time the source was updated.'),
         'type' => 'int',

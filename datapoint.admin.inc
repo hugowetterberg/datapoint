@@ -1,14 +1,14 @@
 <?php
 
-function _data_point_admin_index_page() {
+function _datapoint_admin_index_page() {
   return 'Index?';
 }
 
-function _data_point_admin_source_types() {
+function _datapoint_admin_source_types() {
   return 'List?';
 }
 
-function _data_point_admin_add_source_type($state) {
+function _datapoint_admin_add_source_type($state) {
   //Build the parser options
   $modules = module_implements('datapoint_parser');
   $parsers = array('' => t('-- Select a data parser'));
@@ -53,7 +53,7 @@ function _data_point_admin_add_source_type($state) {
   return $form;
 }
 
-function _data_point_admin_add_source_type_configure($form_state, $parser, $content_type) {
+function _datapoint_admin_add_source_type_configure($form_state, $parser, $content_type) {
   // Build the data point field options
   $dp_fields = datapoint_source_fields($parser);
   $dp_field_options = array_merge(array('' => t('-- Empty')));
@@ -101,7 +101,7 @@ function _data_point_admin_add_source_type_configure($form_state, $parser, $cont
       '#ahah' => array(
         'method' => 'replace',
         'wrapper' => 'field-source-' . $name . '-configuration-placeholder',
-        'path' => 'datapoint/ahah/field_source_configuration/' . $parser . '/'  . $name,
+        'path' => 'datapoint/ahah/field-source-configuration/' . $parser . '/'  . $name,
       ),
     );
 
@@ -112,8 +112,21 @@ function _data_point_admin_add_source_type_configure($form_state, $parser, $cont
       '#value' => '<span></span>',
     );
   }
+  
+  // Simulate a node form to get the taxonomy module to provide taxonomy fields
+  $tax = array();
+  $tax['type'] = array('#type' => 'value', '#value' => $content_type);
+  $tax['#node'] = (object)array(
+    'nid' => 0,
+    'type' => $content_type,
+  );
+  taxonomy_form_alter($tax, array(), $content_type . '_node_form');
+  $form['taxonomy'] = $tax['taxonomy'];
+  $form['taxonomy']['#weight'] = 90;
+  $form['taxonomy']['#description'] = t('Set the default categories and tags that should be used for nodes generated from sources of this type. This can be overridden on individual sources later.');
 
   $form['submit'] = array(
+    '#weight' => 99,
     '#type' => 'submit',
     '#value' => t('Save'),
   );
@@ -121,20 +134,20 @@ function _data_point_admin_add_source_type_configure($form_state, $parser, $cont
   return $form;
 }
 
-function _data_point_admin_add_source_type_configure_validate($form, &$form_state) {
+function _datapoint_admin_add_source_type_configure_validate($form, &$form_state) {
   $configuration = source_type_configuration_from_form_values($form_state['values']);
   if (!preg_match('!^[a-z0-9_]+$!', $configuration['type'])) {
     form_set_error('type', t('The machine-readable name must contain only lowercase letters, numbers, and underscores.'));
   }
-  if (data_point_source_type($configuration['type'])) {
+  if (datapoint_source_type($configuration['type'])) {
     form_set_error('type', t('The machine-readable name %type is already taken.', array(
       '%type' => $configuration['type'])));
   }
 }
 
-function _data_point_admin_add_source_type_configure_submit($form, $form_state) {
+function _datapoint_admin_add_source_type_configure_submit($form, $form_state) {
   $configuration = source_type_configuration_from_form_values($form_state['values']);
-  data_point_add_source_type($configuration);
+  datapoint_add_source_type($configuration);
 }
 
 function source_type_configuration_from_form_values($values) {
@@ -147,6 +160,7 @@ function source_type_configuration_from_form_values($values) {
     'content_type' => $content_type,
     'parser' => $parser,
     'fields' => array(),
+    'taxonomy' => taxonomy_preview_terms((object)array('taxonomy' => $values['taxonomy'])),
   );
 
   $fields = datapoint_managed_fields($content_type);
@@ -196,9 +210,9 @@ function datapoint_ahah_field_source_configuration($parser, $field) {
   exit;
 }
 
-function _data_point_admin_add_source_type_submit($form, $form_state) {
+function _datapoint_admin_add_source_type_submit($form, $form_state) {
   $values = $form_state['values'];
-  drupal_goto('admin/content/datapoint/add-source-type/' . $values['parser_type'] . '/' . $values['content_type']);
+  drupal_goto('admin/content/datapoint/source-types/add/' . $values['parser_type'] . '/' . $values['content_type']);
 }
 
 function _datapoint_source_type_configure($form_state, $module) {
@@ -208,9 +222,9 @@ function _datapoint_source_type_configure($form_state, $module) {
 
   //Build the node type options
   $node_types = node_get_types();
-  $node_type_options = array(
-    0 => t('-- Select a node type'),
-  );
+  $node_type_options = array_merge(array(
+    '' => t('-- Select a node type'),
+  ), datapoint_source_types());
   foreach($node_types as $type => $type_info) {
     $node_type_options[$type] = $type_info->name;
   }
@@ -245,25 +259,33 @@ function _datapoint_source_type_configure($form_state, $module) {
 
 function _datapoint_source_add() {
   $form = array();
+  drupal_add_js('misc/autocomplete.js');
 
   $modules = module_implements('datapoint');
-  $source_types = array(
+  $source_types = array_merge(array(
     0 => t('-- Select a source type'),
-  );
+  ), datapoint_source_types());
   foreach ($modules as $module) {
     $info = call_user_func($module . '_datapoint');
     $source_types[$module] = $info['name'];
   }
 
+  $form['source_name'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Name'),
+    '#default_value' => '',
+    '#required' => TRUE,
+  );
+
   $form['source_type'] = array(
     '#type' => 'select',
-    '#title' => t('Source types'),
+    '#title' => t('Source type'),
     '#options' => $source_types,
     '#default_value' => 0,
     '#ahah' => array(
       'method' => 'replace',
       'wrapper' => 'source-configuration',
-      'path' => 'datapoint/source_configuration_ahah'
+      'path' => 'datapoint/ahah/source_configuration'
     ),
   );
 
@@ -274,39 +296,43 @@ function _datapoint_source_add() {
     '#value' => '<span></span>',
   );
 
-  $form['custom_node_configuration'] = array(
-    '#type' => 'checkbox',
-    '#title' => t('Custom node configuration'),
-    '#description' => t('Check this box if you want the nodes from this source to be created differently than for other sources of this type'),
-    '#default_value' => FALSE,
-    '#ahah' => array(
-      'method' => 'replace',
-      'wrapper' => 'node-configuration',
-      'path' => 'datapoint/node_configuration_ahah'
-    ),
-  );
-
-  $form['node_configuration_placeholder'] = array(
-    '#type' => 'markup',
-    '#prefix' => '<div id="node-configuration">',
-    '#suffix' => '</div>',
-    '#value' => '<span></span>',
-  );
-
   $form['submit'] = array(
     '#type' => 'submit',
+    '#weight' => 99,
     '#value' => t('Save'),
   );
 
   return $form;
 }
 
-function datapoint_node_configuration_ahah() {
+function source_configuration_from_form_values($values) {
+  $configuration = array(
+    'type' => $values['source_type'],
+    'name' => $values['source_name'],
+    'taxonomy' => taxonomy_preview_terms((object)$values),
+  );
+  
+  $type = datapoint_source_type($values['source_type']);
+  $configuration['parser'] = $type['parser'];
+  
+  $info = call_user_func($type['parser'] . '_datapoint_parser');
+  if (isset($info['source configuration submit'])) {
+    $configuration['source configuration'] = call_user_func($info['source configuration submit'], $values);
+  }
+  return $configuration;
+}
+
+function _datapoint_source_add_submit($form, $form_state) {
+  $values = $form_state['values'];
+  $configuration = source_configuration_from_form_values($values);
+  datapoint_add_source($configuration);
+}
+
+function datapoint_ahah_custom_node_configuration() {
   $cached_form_state = array();
   $cached_form = form_get_cache($_POST['form_build_id'], $cached_form_state);
 
-  $content_type = $_POST['content_type'];
-  $module = $_POST['source_type'];
+  $type_name = $_POST['source_type'];
   if (isset($_POST['custom_node_configuration'])) {
     $custom = $_POST['custom_node_configuration'];
   }
@@ -319,68 +345,58 @@ function datapoint_node_configuration_ahah() {
       '#value' => '<span></span>',
     );
   }
-  else if (empty($module)) {
+  else if (empty($type_name)) {
     $set = array(
       '#value' => '<div class="message notice message-notice">' .
         t('Please select a source type before customizing node settings') . '</span>',
     );
   }
-  else if (empty($content_type)) {
-    $set = array(
-      '#value' => '<div class="message notice message-notice">' .
-        t('Please select a content type before customizing node settings') . '</span>',
-    );
-  }
   else {
-    $set = datapoint_node_configuration_form($module, array());
+    $type = datapoint_source_type($type_name);
+    $set = datapoint_node_configuration_form($type, array());
   }
 
   $cached_form['node_configuration'] = $set;
   form_set_cache($_POST['form_build_id'], $cached_form, $cached_form_state);
   $form_state = array('submitted' => FALSE);
-  $set = form_builder('datapoint_node_configuration_ahah', $set, $form_state);
+  $set = form_builder('datapoint_ahah_custom_node_configuration', $set, $form_state);
   $output = drupal_render($set);
   print drupal_to_js(array('status' => TRUE, 'data' => $output));
   exit;
 }
 
-function datapoint_node_configuration_form($module, $configuration) {
-  // Build the field options
-  $schema = datapoint_vertex_module_schema($module);
-  $fields = $schema[$module . '_vertex']['fields'];
-
-  $field_options = array(
-    '__datapoint_name' => t('The name of the data point'),
-    '__external_id' => t('The external id for the data point'),
-  );
-  foreach ($fields as $key => $column) {
-    $field_options[$key] = $column['description'];
+function datapoint_source_configuration_form($type, $configuration) {
+  $info = call_user_func($type['parser'] . '_datapoint_parser');
+  if (isset($info['source configuration'])) {
+    $form = call_user_func($info['source configuration'], array());
   }
-
-  $form = array();
-
-  $form['field_select'] = array(
-    '#type' => 'select',
-    '#options' => $field_options,
+  else {
+    $form = array();
+  }
+  
+  // Simulate a node form to get the taxonomy module to alter our form
+  $form['type'] = array('#type' => 'value', '#value' => $type['content_type']);
+  $form['#node'] = (object)array(
+    'nid' => 0,
+    'type' => $type['content_type'],
+    'taxonomy' => $type['taxonomy'],
   );
-
+  taxonomy_form_alter($form, array(), $type['content_type'] . '_node_form');
+  
+  //Remove the attributes needed for taxonomy_form_alter
+  unset($form['type']);
+  unset($form['#node']);
   return $form;
 }
 
-function datapoint_source_configuration_form($module, $configuration) {
-  $info = call_user_func($module . '_datapoint');
-  $form = call_user_func($info['configuration'], array());
-
-  return $form;
-}
-
-function datapoint_source_configuration_ahah() {
+function datapoint_ahah_source_configuration() {
   $cached_form_state = array();
   $cached_form = form_get_cache($_POST['form_build_id'], $cached_form_state);
 
-  $module = $_POST['source_type'];
-  if ($module) {
-    $set = datapoint_source_configuration_form($module, array());
+  $type_name = $_POST['source_type'];
+  if (!empty($type_name)) {
+    $type = datapoint_source_type($type_name);
+    $set = datapoint_source_configuration_form($type, array());
   }
   else {
     $set = array(
