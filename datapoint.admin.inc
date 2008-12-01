@@ -315,7 +315,7 @@ function source_configuration_from_form_values($values) {
   $type = datapoint_source_type($values['source_type']);
   $configuration['parser'] = $type['parser'];
   
-  $info = call_user_func($type['parser'] . '_datapoint_parser');
+  $info = datapoint_parser_info($type['parser']);
   if (isset($info['source configuration submit'])) {
     $configuration['source configuration'] = call_user_func($info['source configuration submit'], $values);
   }
@@ -366,7 +366,7 @@ function datapoint_ahah_custom_node_configuration() {
 }
 
 function datapoint_source_configuration_form($type, $configuration) {
-  $info = call_user_func($type['parser'] . '_datapoint_parser');
+  $info = datapoint_parser_info($type['parser']);
   if (isset($info['source configuration'])) {
     $form = call_user_func($info['source configuration'], array());
   }
@@ -411,4 +411,29 @@ function datapoint_ahah_source_configuration() {
   $output = drupal_render($set);
   print drupal_to_js(array('status' => TRUE, 'data' => $output));
   exit;
+}
+
+function datapoint_parser_info($parser_module) {
+  if (is_callable($parser_module . '_datapoint_parser')) {
+    return call_user_func($parser_module . '_datapoint_parser');
+  }
+  return array();
+}
+
+function datapoint_update_source($sid) {
+  $source = datapoint_source($sid);
+  
+  if ($source) {
+    $parser = datapoint_parser_info($source['parser']);
+    if (is_callable($parser['fetch'])) {
+      require_once('datapoint.inc');
+      $results = new DatapointResults();
+      call_user_func($parser['fetch'], $source, $results);
+      
+      foreach($results as )
+    }
+  }
+  else {
+    drupal_not_found();
+  }
 }

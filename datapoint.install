@@ -33,6 +33,13 @@ function datapoint_schema() {
         'not null' => TRUE,
         'default' => '',
       ),
+      'pinged' => array(
+        'description' => t('If the source has been pinged since the last update.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
       'last_update' => array(
         'description' => t('The last time the source was updated.'),
         'type' => 'int',
