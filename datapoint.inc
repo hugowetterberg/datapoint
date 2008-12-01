@@ -55,6 +55,10 @@ class Datapoint implements IteratorAggregate {
     $this->vertexes[] = $vertex;
   }
 
+  public function getStartTime() {
+    return $this->fromTime;
+  }
+
   public static function xmlAttribute($node, $name, $ns=NULL) {
     if (!empty($ns)) {
       if ($node->hasAttributeNS($ns, $name)) {

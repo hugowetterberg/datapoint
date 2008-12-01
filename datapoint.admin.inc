@@ -430,10 +430,71 @@ function datapoint_update_source($sid) {
       $results = new DatapointResults();
       call_user_func($parser['fetch'], $source, $results);
 
-      foreach($results as )
+      datapoint_store($source, $results);
     }
   }
   else {
     drupal_not_found();
+  }
+}
+
+/**
+ * Stores the $results for the $source. If you want to add data points and vertexes 
+ * programmatically this is the place to do it.
+ *
+ * @return void
+ **/
+function datapoint_store($source, &$results) {
+  require_once(drupal_get_path('module', 'datapoint') . '/datapoint.vertex-install.inc');
+  
+  foreach($results as $extid => $point) {
+    $dbp = datapoint_by_external_id($source['sid'], $extid);
+    // If the data point exists in the database
+    if ($dbp) {
+      // ...delete vertexes that overlap or are later than what we're currently adding
+      db_query("DELETE FROM {{$source['parser']}_vertex} WHERE pid=%d AND valid_from>=%d", 
+        $dbp->pid, $point->getStartTime());
+    }
+    else {
+      // ...otherwise we just want to add the datapoint
+      db_query("INSERT INTO {datapoint}(sid, external_id, name) VALUES(%d, '%s', '%s')",
+        $source['sid'], $extid, $point->getName());
+      $dbp = datapoint_by_external_id($source['sid'], $extid);
+    }
+    
+    // The schema information for the parser is needed to create vertexes
+    $schema = datapoint_vertex_module_fields($source['parser']);
+    
+    foreach ($point as $vertex) {
+      $attr = $vertex->getValues();
+      
+      // Set up our field & values arrays with the two default columns
+      $fields = array('pid', 'valid_from');
+      $values = array($dbp->pid, $vertex->getTime());
+      
+      // Iterate through the vertex columns
+      foreach ($schema['fields'] as $cname => $cdef) {
+        if (isset($attr[$cname])) { //Attributes that are provided should always be added
+          $fields[] = $cname;
+          $values[] = $attr[$cname];
+        }
+        // If no value was provided and the column is required
+        else if (isset($cdef['not null']) && $cdef['not null']) {
+          if (isset($cdef['default'])) { // We're saved by a default value
+            $fields[] = $cname;
+            $values[] = $cdef['default'];
+          }
+          else { // The vertex is not valid so we're skipping it
+            continue;
+          }
+        }
+      }
+      
+      // Construct and execute the sql
+      $field_string = join(',', $fields);
+      $value_placeholders = join(',', array_fill(0,count($fields), "'%s'"));
+      db_query("INSERT INTO {{$source['parser']}_vertex}({$field_string})
+        VALUES({$value_placeholders})", $values);
+    }
   }
 }

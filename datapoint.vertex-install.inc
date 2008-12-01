@@ -1,5 +1,10 @@
 <?php
 
+function datapoint_vertex_module_fields($module) {
+  require_once(drupal_get_path('module', $module) . '/' . $module . '.vertex.inc');
+  return call_user_func($module . '_vertex_schema');
+}
+
 function datapoint_vertex_module_schema($module) {
   require_once(drupal_get_path('module', $module) . '/' . $module . '.vertex.inc');
 

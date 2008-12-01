@@ -161,8 +161,18 @@ function datapoint_source_type($type) {
  **/
 function datapoint_source($sid) {
   $res = db_query("SELECT configuration FROM {datapoint_source} WHERE sid='%d'", $sid);
-  if ($source = db_fetch_object($res)) {
-    return unserialize($source->configuration);
+  if ($o = db_fetch_object($res)) {
+    $source = unserialize($o->configuration);
+    $source['sid'] = $sid;
+    return $source;
+  }
+  return FALSE;
+}
+
+function datapoint_by_external_id($source, $id) {
+  $res = db_query("SELECT * FROM {datapoint} WHERE sid=%d AND external_id='%s'", $source, $id);
+  if ($point = db_fetch_object($res)) {
+    return $point;
   }
   return FALSE;
 }
@@ -251,7 +261,7 @@ function _datapoint_set_node_body(&$node, $field, $value) {
   $node->body = $value;
 }
 
-function datapoint_url_fetch($url, &$result, $callback) {
+function datapoint_url_fetch($url, $source, &$result, $callback) {
   // This function initializes CURL, sets the necessary CURL
   // options, executes the request and returns the results.
   $ch = curl_init();
@@ -260,5 +270,5 @@ function datapoint_url_fetch($url, &$result, $callback) {
   $data = curl_exec($ch);
   curl_close($ch);
 
-  call_user_func($callback, $data, $result);
+  call_user_func($callback, $data, $source, $result);
 }
