@@ -195,7 +195,7 @@ function datapoint_add_source_type($configuration) {
  **/
 function datapoint_add_source($configuration) {
   db_query("INSERT INTO {datapoint_source}(source_type, name, last_update, configuration)
-    VALUES('%s','%s','%s',0,'%s')",
+    VALUES('%s','%s',0,'%s')",
     $configuration['type'], $configuration['name'], serialize($configuration));
 }
 
@@ -289,13 +289,14 @@ function datapoint_url_fetch($url, $source, &$result, $callback) {
  **/
 function datapoint_store($source, &$results) {
   require_once(drupal_get_path('module', 'datapoint') . '/datapoint.vertex-install.inc');
+  $vertex_table = $source['parser'] . '_vertex';
   
   foreach($results as $extid => $point) {
     $dbp = datapoint_by_external_id($source['sid'], $extid);
     // If the data point exists in the database
     if ($dbp) {
       // ...delete vertexes that overlap or are later than what we're currently adding
-      db_query("DELETE FROM {{$source['parser']}_vertex} WHERE pid=%d AND valid_from>=%d", 
+      db_query("DELETE FROM {{$vertex_table}} WHERE pid=%d AND valid_from>=%d", 
         $dbp->pid, $point->getStartTime());
     }
     else {
@@ -336,10 +337,26 @@ function datapoint_store($source, &$results) {
       // Construct and execute the sql
       $field_string = join(',', $fields);
       $value_placeholders = join(',', array_fill(0,count($fields), "'%s'"));
-      db_query("INSERT INTO {{$source['parser']}_vertex}({$field_string})
+      db_query("INSERT INTO {{$vertex_table}}({$field_string})
         VALUES({$value_placeholders})", $values);
     }
     
-    //TODO: Check for the currently active vertex, set dirty if changed
+    // Check for the currently active vertex, set dirty if changed
+    $active_vid = 0;
+    $cv_res = db_query_range("SELECT vid FROM {{$vertex_table}}
+      WHERE pid = %d
+      AND valid_from <= %d
+      ORDER BY valid_from DESC", $dbp->pid, time(), 0, 1);
+    if ($o = db_fetch_object($cv_res)) {
+      $active_vid = $o->vid;
+    }
+    
+    if ($active_vid != $dbp->vid) { // We don't need to do anything if the vid is unchanged
+      // We only set the dirty-flag if we actually have a vertex to update with
+      // otherwise the node should be left unchanged.
+      $dirty = $active_vid ? 1 : 0; 
+      db_query('UPDATE {datapoint} SET vid=%d, dirty=%d WHERE pid=%d',
+        $active_vid, $dirty, $dbp->pid);
+    }
   }
 }
