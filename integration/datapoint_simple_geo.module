@@ -4,7 +4,7 @@ function datapoint_simple_geo_datapoint_managed_fields_alter(&$fields, $type) {
   $has_position = variable_get('allow_position_'. $type->type, FALSE);
   $fields['simple_geo_position'] = array(
     'label' => t('Position'),
-    'required' => $field['required'],
+    'required' => FALSE,
     'setter' => '_datapoint_simple_geo_set_position',
   );
 }
