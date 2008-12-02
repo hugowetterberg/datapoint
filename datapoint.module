@@ -5,6 +5,15 @@ require_once('datapoint.vertex-install.inc');
 function datapoint_init() {
 }
 
+function datapoint_nodeapi(&$node, $op) {
+  if ($op=='load') {
+    $res = db_query("SELECT * FROM {datapoint} WHERE nid=%s", $node->nid);
+    if ($dp = db_fetch_object($res)) {
+      $node->datapoint = $dp;
+    }
+  }
+}
+
 /**
  * Implementation of hook_menu
  *
@@ -294,7 +303,7 @@ function datapoint_datapoint_managed_fields_alter(&$fields, $type) {
  *
  * @return void
  **/
-function _datapoint_set_node_title(&$node, $field, $value) {
+function _datapoint_set_node_title(&$node, $field, $setter, $value) {
   $node->title = $value;
 }
 
@@ -303,7 +312,7 @@ function _datapoint_set_node_title(&$node, $field, $value) {
  *
  * @return void
  **/
-function _datapoint_set_node_body(&$node, $field, $value) {
+function _datapoint_set_node_body(&$node, $field, $setter, $value) {
   $node->body = $value;
 }
 
@@ -483,7 +492,7 @@ function datapoint_update_node($source, $datapoint, $vertex) {
 
       // Get the managed definition and execute it's callback
       $managed_def = $managed_fields[$managed_name];
-      call_user_func_array($managed_def['setter'], array(&$node, $field, $value));
+      call_user_func_array($managed_def['setter'], array(&$node, $field, $managed_def, $value));
     }
   }
 

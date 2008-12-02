@@ -9,6 +9,6 @@ function datapoint_simple_geo_datapoint_managed_fields_alter(&$fields, $type) {
   );
 }
 
-function _datapoint_simple_geo_set_position(&$node, $field, $value) {
+function _datapoint_simple_geo_set_position(&$node, $field, $setter, $value) {
   $node->simple_geo_position = $value;
 }

@@ -37,17 +37,17 @@ function _datapoint_cck_setters($type) {
   }
 }
 
-function _datapoint_cck_set_text(&$node, $field, $value) {
-  $field_name = $field['field_name'];
+function _datapoint_cck_set_text(&$node, $field, $setter, $value) {
+  $field_name = $setter['field_name'];
   $node->$field_name = array(array('value'=>$value));
 }
 
-function _datapoint_cck_set_integer(&$node, $field, $value) {
-  $field_name = $field['field_name'];
+function _datapoint_cck_set_integer(&$node, $field, $setter, $value) {
+  $field_name = $setter['field_name'];
   $node->$field_name = array(array('value'=>intval($value)));
 }
 
-function _datapoint_cck_set_float(&$node, $field, $value) {
-  $field_name = $field['field_name'];
+function _datapoint_cck_set_float(&$node, $field, $setter, $value) {
+  $field_name = $setter['field_name'];
   $node->$field_name = array(array('value'=>floatval($value)));
 }
