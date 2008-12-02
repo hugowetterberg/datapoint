@@ -50,6 +50,11 @@ function datapoint_menu() {
     'type' => MENU_CALLBACK,
   );
 
+  $menu['admin/content/datapoint/update-nodes'] = array(
+    'page callback' => 'datapoint_update_nodes',
+    'access arguments' => array('administer datapoint sources'),
+  );
+
   // Ping
   // TODO: The ping should not point directly to the update_source function, rather it should do some checks against last update and schedule a on cron update or trigger a direct update accordingly.
   $menu['datapoint/ping/%'] = array(
@@ -121,8 +126,8 @@ function datapoint_source_fields($parser) {
   return $cache[$parser];
 }
 
-function _datapoint_source_fields($field_name, $field, $datapoint, $vertex) {
-  switch ($field_name) {
+function _datapoint_source_fields(&$node, $field_name, $field, $source, $datapoint, $vertex) {
+  switch ($field['source']) {
     case 'datapoint_name':
       return $datapoint->name;
     break;
@@ -132,8 +137,8 @@ function _datapoint_source_fields($field_name, $field, $datapoint, $vertex) {
     default:
       // Check if this simply is a reference to a vertex attribute
       // TODO: Maybe this could be a viable method to get the datapoint attributes too
-      if (isset($field['vertex_attribute'])) {
-        $a = $field['vertex_attribute'];
+      if (isset($source['vertex_attribute'])) {
+        $a = $source['vertex_attribute'];
         if (isset($vertex->$a)) {
           return $vertex->$a;
         }
@@ -161,13 +166,21 @@ function datapoint_source_type($type) {
  * @return array Source configuration
  **/
 function datapoint_source($sid) {
-  $res = db_query("SELECT configuration FROM {datapoint_source} WHERE sid='%d'", $sid);
-  if ($o = db_fetch_object($res)) {
-    $source = unserialize($o->configuration);
-    $source['sid'] = $sid;
-    return $source;
+  static $cache = array();
+
+  if (!isset($cache[$sid])) {
+    $res = db_query("SELECT configuration FROM {datapoint_source} WHERE sid='%d'", $sid);
+    if ($o = db_fetch_object($res)) {
+      $source = unserialize($o->configuration);
+      $source['sid'] = $sid;
+      $cache[$sid] = $source;
+    }
+    else {
+      return FALSE;
+    }
   }
-  return FALSE;
+
+  return $cache[$sid];
 }
 
 function datapoint_by_external_id($source, $id) {
@@ -293,6 +306,7 @@ function datapoint_store($source, &$results) {
 
   foreach($results as $extid => $point) {
     $dbp = datapoint_by_external_id($source['sid'], $extid);
+
     // If the data point exists in the database
     if ($dbp) {
       // ...delete vertexes that overlap or are later than what we're currently adding
@@ -359,4 +373,75 @@ function datapoint_store($source, &$results) {
         $active_vid, $dirty, $dbp->pid);
     }
   }
+}
+
+function datapoint_vertex($source, $vid) {
+  $vertex_table = $source['parser'] . '_vertex';
+  $res = db_query("SELECT * FROM {{$vertex_table}} WHERE vid = %d", $vid);
+  if ($vertex = db_fetch_object($res)) {
+    return $vertex;
+  }
+  return FALSE;
+}
+
+function datapoint_update_nodes() {
+  // Get a maximum of fifty dirty datapoints that should have nodes updated or created
+  $dirty_res = db_query_range("SELECT * FROM {datapoint} WHERE dirty=1", 0, 50);
+
+  while($dbp = db_fetch_object($dirty_res)) {
+    $source = datapoint_source($dbp->sid);
+    if ($source) {
+      $vertex = datapoint_vertex($source, $dbp->vid);
+      if ($vertex) {
+        datapoint_update_node($source, $dbp, $vertex);
+      }
+    }
+  }
+}
+
+function datapoint_update_node($source, $datapoint, $vertex) {
+  $source_type = datapoint_source_type($source['type']);
+
+  $node = NULL;
+  if ($datapoint->nid) {
+    $node = node_load($datapoint->nid);
+  }
+  if (!$node) {
+    $node = new stdClass();
+    $node->type = $source_type['content_type'];
+
+    module_load_include('inc', 'node', 'node.pages');
+
+    // Prepare node object
+    node_object_prepare($node);
+
+    // Set the default taxonomy for the source
+    $node->taxonomy = $source['taxonomy'];
+  }
+  
+  $fields = $source_type['fields'];
+  $source_fields = datapoint_source_fields($source_type['parser']);
+  $managed_fields = datapoint_managed_fields($node->type);
+  
+  // Iterate through the fields configured in the source type and 
+  // get source values and feed them to the setters
+  foreach ($fields as $managed_name => $field) {
+    $source_name = $field['source'];
+    
+    if (isset($managed_fields[$managed_name]) && isset($source_fields[$source_name])) {
+      // Get the source definition and execute it's callback
+      $source_def = $source_fields[$source_name];
+      $value = call_user_func_array($source_def['callback'], array(&$node, $managed_name, $field, $source_def, $datapoint, $vertex));
+      
+      // Get the managed definition and execute it's callback
+      $managed_def = $managed_fields[$managed_name];
+      call_user_func_array($managed_def['setter'], array(&$node, $field, $value));
+    }
+  }
+  
+  node_save($node);
+  
+  db_query("UPDATE {datapoint} SET dirty=0, vid=%d, nid=%d WHERE pid=%d", $vertex->vid, $node->nid, $datapoint->pid);
+  
+  return $node;
 }
