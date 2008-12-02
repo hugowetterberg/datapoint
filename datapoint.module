@@ -3,12 +3,13 @@ require_once('datapoint.inc');
 require_once('datapoint.vertex-install.inc');
 
 function datapoint_init() {
-  $modules = module_implements('datapoint_update');
-  foreach ($modules as $module) {
-    $results = new DatapointResults();
-  }
 }
 
+/**
+ * Implementation of hook_menu
+ *
+ * @return array
+ **/
 function datapoint_menu() {
   $menu = array();
   $menu['admin/content/datapoint'] = array(
@@ -89,10 +90,20 @@ function datapoint_menu() {
   return $menu;
 }
 
+/**
+ * Implementation of hook_perm
+ *
+ * @return array
+ **/
 function datapoint_perm() {
   return array('administer datapoint sources');
 }
 
+/**
+ * Gets the source fields that are available for the results from a specific $parser
+ *
+ * @return array
+ **/
 function datapoint_source_fields($parser) {
   static $cache = array();
 
@@ -126,6 +137,11 @@ function datapoint_source_fields($parser) {
   return $cache[$parser];
 }
 
+/**
+ * Common callback for all the basic source fields
+ *
+ * @return mixed
+ **/
 function _datapoint_source_fields(&$node, $field_name, $field, $source, $datapoint, $vertex) {
   switch ($field['source']) {
     case 'datapoint_name':
@@ -183,6 +199,12 @@ function datapoint_source($sid) {
   return $cache[$sid];
 }
 
+/**
+ * Loads a datapoint from the given $source with the specified external $id.
+ * The $source acts as a namespace for external id:s
+ *
+ * @return void
+ **/
 function datapoint_by_external_id($source, $id) {
   $res = db_query("SELECT * FROM {datapoint} WHERE sid=%d AND external_id='%s'", $source, $id);
   if ($point = db_fetch_object($res)) {
@@ -267,10 +289,20 @@ function datapoint_datapoint_managed_fields_alter(&$fields, $type) {
   }
 }
 
+/**
+ * Setter for the managed field title
+ *
+ * @return void
+ **/
 function _datapoint_set_node_title(&$node, $field, $value) {
   $node->title = $value;
 }
 
+/**
+ * Setter for the managed field body
+ *
+ * @return void
+ **/
 function _datapoint_set_node_body(&$node, $field, $value) {
   $node->body = $value;
 }
@@ -375,6 +407,11 @@ function datapoint_store($source, &$results) {
   }
 }
 
+/**
+ * Gets a vertex
+ *
+ * @return void
+ **/
 function datapoint_vertex($source, $vid) {
   $vertex_table = $source['parser'] . '_vertex';
   $res = db_query("SELECT * FROM {{$vertex_table}} WHERE vid = %d", $vid);
@@ -384,6 +421,11 @@ function datapoint_vertex($source, $vid) {
   return FALSE;
 }
 
+/**
+ * Updates the nodes for all data points that've been marked as dirty
+ *
+ * @return void
+ **/
 function datapoint_update_nodes() {
   // Get a maximum of fifty dirty datapoints that should have nodes updated or created
   $dirty_res = db_query_range("SELECT * FROM {datapoint} WHERE dirty=1", 0, 50);
@@ -399,6 +441,12 @@ function datapoint_update_nodes() {
   }
 }
 
+/**
+ * Updates a node with the information from a datapoint
+ * This also sets the node association and active vertex for data points
+ *
+ * @return void
+ **/
 function datapoint_update_node($source, $datapoint, $vertex) {
   $source_type = datapoint_source_type($source['type']);
 
