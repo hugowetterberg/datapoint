@@ -291,7 +291,7 @@ function datapoint_url_fetch($url, $source, &$result, $callback) {
   $data = curl_exec($ch);
   curl_close($ch);
 
-  call_user_func($callback, $data, $source, $result);
+  call_user_func_array($callback, array($data, $source, &$result));
 }
 
 /**
