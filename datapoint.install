@@ -119,6 +119,20 @@ function datapoint_schema() {
         'not null' => TRUE,
         'default' => '',
       ),
+      'nid' => array(
+        'description' => t('The node that\'s managed by the datapoint, set to 0 if no node is created yet.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'dirty' => array(
+        'description' => t('Set to 1 if the active vertex has changed and the node needs updating, otherwise set to 0.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
     ),
     'primary key' => array('pid'),
   );

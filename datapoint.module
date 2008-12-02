@@ -261,6 +261,13 @@ function _datapoint_set_node_body(&$node, $field, $value) {
   $node->body = $value;
 }
 
+/**
+ * Helper function to fetch data from a url for a parser
+ *
+ * TODO: This function should be enhanced with some header stuff like etag & updated since. We should stop unchanged data from reaching the parser based on some md5 or crc check.
+ *
+ * @return void
+ **/
 function datapoint_url_fetch($url, $source, &$result, $callback) {
   // This function initializes CURL, sets the necessary CURL
   // options, executes the request and returns the results.
@@ -331,5 +338,7 @@ function datapoint_store($source, &$results) {
       db_query("INSERT INTO {{$source['parser']}_vertex}({$field_string})
         VALUES({$value_placeholders})", $values);
     }
+    
+    //TODO: Check for the currently active vertex, set dirty if changed
   }
 }
