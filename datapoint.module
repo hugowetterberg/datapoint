@@ -51,6 +51,7 @@ function datapoint_menu() {
   );
 
   // Ping
+  // TODO: The ping should not point directly to the update_source function, rather it should do some checks against last update and schedule a on cron update or trigger a direct update accordingly.
   $menu['datapoint/ping/%'] = array(
     'page callback' => 'datapoint_update_source',
     'page arguments' => array(2),
