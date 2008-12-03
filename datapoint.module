@@ -14,6 +14,45 @@ function datapoint_nodeapi(&$node, $op) {
   }
 }
 
+function datapoint_cron() {
+  require_once('datapoint.admin.inc');
+  
+  //Update sources that never have been updated or haven't been updated in one hour, limit to five
+  $res = db_query_range("SELECT sid FROM {datapoint_source} 
+    WHERE last_update<%d
+    ORDER BY pinged DESC,
+      last_update ASC", time()-(60*60*2), 0, 5);
+  if ($o = db_fetch_object($res)) {
+    datapoint_update_source($o->sid);
+  }
+  
+  //Update and create nodes
+  datapoint_update_nodes();
+}
+
+function datapoint_update_source($sid) {
+  $source = datapoint_source($sid);
+
+  if ($source) {
+    $parser = datapoint_parser_info($source['parser']);
+    if (is_callable($parser['fetch'])) {
+      require_once('datapoint.inc');
+      $results = new DatapointResults();
+      call_user_func($parser['fetch'], $source, $results);
+
+      // Store the results from the fetch
+      datapoint_store($source, $results);
+
+      // Mark the source as updated, and clear ping flag
+      db_query("UPDATE {datapoint_source} SET pinged=0, last_update=%d WHERE sid=%d", time(), $sid);
+    }
+    return TRUE;
+  }
+  else {
+    return FALSE;
+  }
+}
+
 /**
  * Implementation of hook_menu
  *
@@ -60,9 +99,16 @@ function datapoint_menu() {
     'type' => MENU_CALLBACK,
   );
 
+  $menu['admin/content/datapoint/cron'] = array(
+    'page callback' => 'datapoint_cron',
+    'access arguments' => array('access content'),
+    'type' => MENU_CALLBACK,
+  );
+
   $menu['admin/content/datapoint/update-nodes'] = array(
     'page callback' => 'datapoint_update_nodes',
     'access arguments' => array('administer datapoint sources'),
+    'type' => MENU_CALLBACK,
   );
 
   // Ping

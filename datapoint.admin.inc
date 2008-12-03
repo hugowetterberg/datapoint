@@ -420,20 +420,12 @@ function datapoint_parser_info($parser_module) {
   return array();
 }
 
-function datapoint_update_source($sid) {
-  $source = datapoint_source($sid);
-
-  if ($source) {
-    $parser = datapoint_parser_info($source['parser']);
-    if (is_callable($parser['fetch'])) {
-      require_once('datapoint.inc');
-      $results = new DatapointResults();
-      call_user_func($parser['fetch'], $source, $results);
-
-      datapoint_store($source, $results);
-    }
-  }
-  else {
-    drupal_not_found();
-  }
+/**
+ * Marks the source as pinged and gives it priority during the next update
+ *
+ * @return void
+ * @author /bin/bash: niutil: command not found
+ **/
+function datapoint_ping($sid) {
+  db_query("UPDATE {datapoint_source} SET pinged=1 WHERE sid=%d", $sid);
 }
