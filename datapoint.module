@@ -9,23 +9,30 @@ function datapoint_nodeapi(&$node, $op) {
   if ($op=='load') {
     $res = db_query("SELECT * FROM {datapoint} WHERE nid=%s", $node->nid);
     if ($dp = db_fetch_object($res)) {
+      if (!empty($dp->data)) {
+        $dp->data = unserialize($dp->data);
+      }
+      else {
+        $dp->data = array();
+      }
       $node->datapoint = $dp;
     }
   }
 }
 
 function datapoint_cron() {
+  set_time_limit(0);
   require_once('datapoint.admin.inc');
-  
+
   //Update sources that never have been updated or haven't been updated in one hour, limit to five
-  $res = db_query_range("SELECT sid FROM {datapoint_source} 
+  $res = db_query_range("SELECT sid FROM {datapoint_source}
     WHERE last_update<%d
     ORDER BY pinged DESC,
       last_update ASC", time()-(60*60*2), 0, 5);
   if ($o = db_fetch_object($res)) {
     datapoint_update_source($o->sid);
   }
-  
+
   //Update and create nodes
   datapoint_update_nodes();
 }
@@ -434,6 +441,8 @@ function datapoint_url_fetch($url, $source, &$result, $callback) {
  * @return void
  **/
 function datapoint_store($source, &$results) {
+  set_time_limit(0);
+  
   require_once(drupal_get_path('module', 'datapoint') . '/datapoint.vertex-install.inc');
   $vertex_table = $source['parser'] . '_vertex';
 
@@ -502,7 +511,7 @@ function datapoint_store($source, &$results) {
     }
 
     // Update current vid if needed
-    if ($active_vid != $dbp->vid) { 
+    if ($active_vid != $dbp->vid) {
       db_query('UPDATE {datapoint} SET vid=%d WHERE pid=%d',
         $active_vid, $dbp->pid);
     }
