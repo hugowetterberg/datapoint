@@ -413,6 +413,26 @@ function datapoint_ahah_source_configuration() {
   exit;
 }
 
+function datapoint_export_source_type($type) {
+  $source_type = datapoint_source_type($type);
+  if ($source_type) {
+    return '<textarea>' . htmlspecialchars(var_export($source_type, true)) . '</textarea>';
+  }
+  else {
+    drupal_not_found();
+  }
+}
+
+function datapoint_export_source($sid) {
+  $source = datapoint_source($sid);
+  if ($source) {
+    return '<textarea>' . htmlspecialchars(var_export($source, true)) . '</textarea>';
+  }
+  else {
+    drupal_not_found();
+  }
+}
+
 function datapoint_parser_info($parser_module) {
   if (is_callable($parser_module . '_datapoint_parser')) {
     return call_user_func($parser_module . '_datapoint_parser');

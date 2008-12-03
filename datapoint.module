@@ -99,6 +99,22 @@ function datapoint_menu() {
     'type' => MENU_CALLBACK,
   );
 
+  $menu['admin/content/datapoint/source-types/export/%'] = array(
+    'page callback' => 'datapoint_export_source_type',
+    'page arguments' => array(5),
+    'access arguments' => array('access content'),
+    'file' => 'datapoint.admin.inc',
+    'type' => MENU_CALLBACK,
+  );
+
+  $menu['admin/content/datapoint/source/export/%'] = array(
+    'page callback' => 'datapoint_export_source',
+    'page arguments' => array(5),
+    'access arguments' => array('access content'),
+    'file' => 'datapoint.admin.inc',
+    'type' => MENU_CALLBACK,
+  );
+
   $menu['admin/content/datapoint/cron'] = array(
     'page callback' => 'datapoint_cron',
     'access arguments' => array('access content'),
