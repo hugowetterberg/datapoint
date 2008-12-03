@@ -190,6 +190,11 @@ function datapoint_source_fields($parser) {
         'callback' => '_datapoint_source_fields',
         'description' => t('The external id for the data point'),
       ),
+      'datapoint_data' => array(
+        'callback' => '_datapoint_custom_data_source',
+        'description' => t('Custom datapoint attribute'),
+        'configuration_form' => '_datapoint_custom_data_source_configuration_form',
+      ),
     );
 
     foreach ($schema_fields as $key => $column) {
@@ -201,10 +206,34 @@ function datapoint_source_fields($parser) {
     }
 
     drupal_alter('datapoint_source_fields', $source_fields, $parser);
+
     $cache[$parser] = $source_fields;
   }
 
   return $cache[$parser];
+}
+
+function _datapoint_custom_data_source(&$node, $field_name, $field, $source, $datapoint, $vertex) {
+  $name = $field['configuration']['name'];
+  if (isset($datapoint->data[$name])) {
+    return $datapoint->data[$name];
+  }
+}
+
+function _datapoint_custom_data_source_configuration_form($form_state, $field) {
+  $form = array();
+  $form['datapoint_custom_data_name'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Attribute name'),
+    '#default_value' => '',
+  );
+  return $form;
+}
+
+function _datapoint_custom_data_source_configuration_form_submit($field, $values) {
+  return array(
+    'name' => $values['datapoint_custom_data_name']
+  );
 }
 
 /**
@@ -359,6 +388,8 @@ function datapoint_datapoint_managed_fields_alter(&$fields, $type) {
   }
 }
 
+
+
 /**
  * Setter for the managed field title
  *
@@ -414,11 +445,14 @@ function datapoint_store($source, &$results) {
       // ...delete vertexes that overlap or are later than what we're currently adding
       db_query("DELETE FROM {{$vertex_table}} WHERE pid=%d AND valid_from>=%d",
         $dbp->pid, $point->getStartTime());
+      // ...update the data point
+      db_query("UPDATE {datapoint} SET name='%s', data='%s', dirty=1 WHERE pid=%d",
+        $point->getName(), serialize($point->getData()), $dbp->pid);
     }
     else {
       // ...otherwise we just want to add the datapoint
-      db_query("INSERT INTO {datapoint}(sid, external_id, name) VALUES(%d, '%s', '%s')",
-        $source['sid'], $extid, $point->getName());
+      db_query("INSERT INTO {datapoint}(sid, external_id, name, data, dirty) VALUES(%d, '%s', '%s', '%s', 1)",
+        $source['sid'], $extid, $point->getName(), serialize($point->getData()));
       $dbp = datapoint_by_external_id($source['sid'], $extid);
     }
 
@@ -467,12 +501,10 @@ function datapoint_store($source, &$results) {
       $active_vid = $o->vid;
     }
 
-    if ($active_vid != $dbp->vid) { // We don't need to do anything if the vid is unchanged
-      // We only set the dirty-flag if we actually have a vertex to update with
-      // otherwise the node should be left unchanged.
-      $dirty = $active_vid ? 1 : 0;
-      db_query('UPDATE {datapoint} SET vid=%d, dirty=%d WHERE pid=%d',
-        $active_vid, $dirty, $dbp->pid);
+    // Update current vid if needed
+    if ($active_vid != $dbp->vid) { 
+      db_query('UPDATE {datapoint} SET vid=%d WHERE pid=%d',
+        $active_vid, $dbp->pid);
     }
   }
 }
@@ -501,6 +533,12 @@ function datapoint_update_nodes() {
   $dirty_res = db_query_range("SELECT * FROM {datapoint} WHERE dirty=1", 0, 50);
 
   while($dbp = db_fetch_object($dirty_res)) {
+    if (!empty($dbp->data)) {
+      $dbp->data = unserialize($dbp->data);
+    }
+    else {
+      $dbp->data = array();
+    }
     $source = datapoint_source($dbp->sid);
     if ($source) {
       $vertex = datapoint_vertex($source, $dbp->vid);

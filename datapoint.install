@@ -133,6 +133,12 @@ function datapoint_schema() {
         'not null' => TRUE,
         'default' => 0,
       ),
+      'data' => array(
+        'description' => t('Serialized data for the source.'),
+        'type' => 'text',
+        'not null' => TRUE,
+        'size' => 'big',
+      ),
     ),
     'primary key' => array('pid'),
   );

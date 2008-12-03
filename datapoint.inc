@@ -24,10 +24,12 @@ class Datapoint implements IteratorAggregate {
   private $externalId;
   private $fromTime;
   private $name;
+  private $data;
 
   function Datapoint($externalId) {
     $this->externalId = $externalId;
     $this->vertexes = array();
+    $this->data = array();
     $this->fromTime = Null;
   }
 
@@ -41,6 +43,10 @@ class Datapoint implements IteratorAggregate {
 
   public function setName($value) {
     $this->name = $value;
+  }
+
+  public function data($name, $value) {
+    $this->data[$name] = $value;
   }
 
   public function addVertex($vertex) {
@@ -76,6 +82,10 @@ class Datapoint implements IteratorAggregate {
 
   public function getIterator() {
     return new DatapointIterator($this->vertexes);
+  }
+
+  public function getData() {
+    return $this->data;
   }
 }
 
