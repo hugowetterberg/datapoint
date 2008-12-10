@@ -44,7 +44,7 @@ function datapoint_update_source($sid) {
     $parser = datapoint_parser_info($source['parser']);
     if (is_callable($parser['fetch'])) {
       require_once('datapoint.inc');
-      $results = new DatapointResults();
+      $results = new DatapointResults($source);
       call_user_func($parser['fetch'], $source, $results);
 
       // Store the results from the fetch

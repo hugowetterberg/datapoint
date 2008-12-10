@@ -1,9 +1,11 @@
 <?php
 
 class DatapointResults implements IteratorAggregate {
+  private $source;
   private $points;
 
-  function DatapointResults() {
+  function DatapointResults($source) {
+    $this->source = $source;
     $this->points = array();
   }
 
@@ -16,6 +18,13 @@ class DatapointResults implements IteratorAggregate {
 
   public function getIterator() {
     return new DatapointIterator($this->points);
+  }
+  
+  public function flush() {
+    datapoint_store($this->source, $this);
+    foreach ($this->points as $extid => $point) {
+      unset($this->points[$extid]);
+    }
   }
 }
 
