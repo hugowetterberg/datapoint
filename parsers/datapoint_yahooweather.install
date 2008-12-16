@@ -13,3 +13,13 @@ function datapoint_yahooweather_install() {
 function datapoint_yahooweather_uninstall() {
   drupal_uninstall_schema('datapoint_yahooweather');
 }
+
+function datapoint_yahooweather_update_1() {
+  $ret = array();
+  
+  $ret[] = update_sql("ALTER TABLE {datapoint_yahooweather_vertex}
+    ADD INDEX pid(pid),
+    ADD INDEX valid_from(valid_from)");
+  
+  return $ret;
+}

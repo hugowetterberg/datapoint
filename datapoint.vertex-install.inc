@@ -31,6 +31,13 @@ function datapoint_vertex_module_schema($module) {
     'default' => 0,
   );
   $def['primary key'] = array('vid');
+  
+  if(!isset($def['indexes'])) {
+    $def['indexes'] = array();
+  }
+  
+  $def['indexes']['pid'] = array('pid');
+  $def['indexes']['valid_from'] = array('valid_from');
 
   return array(
     $module . '_vertex' => $def,
