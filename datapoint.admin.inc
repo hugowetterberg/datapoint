@@ -40,9 +40,8 @@ function _datapoint_admin_add_source_type($state) {
   $form['content_type'] = array(
     '#type' => 'select',
     '#title' => t('Node type'),
-    '#required' => TRUE,
     '#options' => $node_type_options,
-    '#description' => t('This is the node type that will be used to publish data points'),
+    '#description' => t('Select a node type that will be used to publish data points'),
   );
 
   $form['submit'] = array(
@@ -53,15 +52,7 @@ function _datapoint_admin_add_source_type($state) {
   return $form;
 }
 
-function _datapoint_admin_add_source_type_configure($form_state, $parser, $content_type) {
-  // Build the data point field options
-  $dp_fields = datapoint_source_fields($parser);
-  $dp_field_options = array_merge(array('' => t('-- Empty')));
-  foreach ($dp_fields as $name => $def) {
-    $dp_field_options[$name] = $def['description'];
-  }
-
-  $fields = datapoint_managed_fields($content_type);
+function _datapoint_admin_add_source_type_configure($form_state, $parser, $content_type=NULL) {
   $form = array(
     'parser' => array(
       '#type' => 'value',
@@ -87,43 +78,54 @@ function _datapoint_admin_add_source_type_configure($form_state, $parser, $conte
     '#description' => t('The human-readable name of this source type.'),
   );
 
-  $form['field_mappings'] = array(
-    '#type' => 'fieldset',
-    '#title' => t('Field mappings'),
-  );
+  if ($content_type) {
+    // Build the data point field options
+    $dp_fields = datapoint_source_fields($parser);
+    $dp_field_options = array_merge(array('' => t('-- Empty')));
+    foreach ($dp_fields as $name => $def) {
+      $dp_field_options[$name] = $def['description'];
+    }
 
-  foreach ($fields as $name => $finfo) {
-    $form['field_mappings']['field_source_' . $name] = array(
-      '#type' => 'select',
-      '#title' => $finfo['label'],
-      '#required' => isset($finfo['required']) && $finfo['required'],
-      '#options' => $dp_field_options,
-      '#ahah' => array(
-        'method' => 'replace',
-        'wrapper' => 'field-source-' . $name . '-configuration-placeholder',
-        'path' => 'datapoint/ahah/field-source-configuration/' . $parser . '/'  . $name,
-      ),
+    $fields = datapoint_managed_fields($content_type);
+
+    $form['field_mappings'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Field mappings'),
     );
 
-    $form['field_mappings']['field_source_' . $name . '_configuration_placeholder'] = array(
-      '#type' => 'markup',
-      '#prefix' => '<div id="field-source-' . $name . '-configuration-placeholder">',
-      '#suffix' => '</div>',
-      '#value' => '<span></span>',
+    foreach ($fields as $name => $finfo) {
+      $form['field_mappings']['field_source_' . $name] = array(
+        '#type' => 'select',
+        '#title' => $finfo['label'],
+        '#required' => isset($finfo['required']) && $finfo['required'],
+        '#options' => $dp_field_options,
+        '#ahah' => array(
+          'method' => 'replace',
+          'wrapper' => 'field-source-' . $name . '-configuration-placeholder',
+          'path' => 'datapoint/ahah/field-source-configuration/' . $parser . '/'  . $name,
+        ),
+      );
+
+      $form['field_mappings']['field_source_' . $name . '_configuration_placeholder'] = array(
+        '#type' => 'markup',
+        '#prefix' => '<div id="field-source-' . $name . '-configuration-placeholder">',
+        '#suffix' => '</div>',
+        '#value' => '<span></span>',
+      );
+    }
+
+    // Simulate a node form to get the taxonomy module to provide taxonomy fields
+    $tax = array();
+    $tax['type'] = array('#type' => 'value', '#value' => $content_type);
+    $tax['#node'] = (object)array(
+      'nid' => 0,
+      'type' => $content_type,
     );
+    taxonomy_form_alter($tax, array(), $content_type . '_node_form');
+    $form['taxonomy'] = $tax['taxonomy'];
+    $form['taxonomy']['#weight'] = 90;
+    $form['taxonomy']['#description'] = t('Set the default categories and tags that should be used for nodes generated from sources of this type. This can be overridden on individual sources later.');
   }
-
-  // Simulate a node form to get the taxonomy module to provide taxonomy fields
-  $tax = array();
-  $tax['type'] = array('#type' => 'value', '#value' => $content_type);
-  $tax['#node'] = (object)array(
-    'nid' => 0,
-    'type' => $content_type,
-  );
-  taxonomy_form_alter($tax, array(), $content_type . '_node_form');
-  $form['taxonomy'] = $tax['taxonomy'];
-  $form['taxonomy']['#weight'] = 90;
-  $form['taxonomy']['#description'] = t('Set the default categories and tags that should be used for nodes generated from sources of this type. This can be overridden on individual sources later.');
 
   $form['submit'] = array(
     '#weight' => 99,
@@ -148,6 +150,11 @@ function _datapoint_admin_add_source_type_configure_validate($form, &$form_state
 function _datapoint_admin_add_source_type_configure_submit($form, $form_state) {
   $configuration = source_type_configuration_from_form_values($form_state['values']);
   datapoint_add_source_type($configuration);
+  
+  drupal_set_message(t('The datapoint source type "!name" has been added', array(
+    '!name' => $configuration['name'],
+  )));
+  drupal_goto('admin/content/datapoint/source-types');
 }
 
 function source_type_configuration_from_form_values($values) {
@@ -159,28 +166,31 @@ function source_type_configuration_from_form_values($values) {
     'name' => $values['name'],
     'content_type' => $content_type,
     'parser' => $parser,
-    'fields' => array(),
-    'taxonomy' => taxonomy_preview_terms((object)array('taxonomy' => $values['taxonomy'])),
   );
+  
+  if ($content_type) {
+    $configuration['fields'] = array(); 
+    $configuration['taxonomy'] = taxonomy_preview_terms((object)array('taxonomy' => $values['taxonomy']));
+    
+    $fields = datapoint_managed_fields($content_type);
+    $source_fields = datapoint_source_fields($parser);
+    foreach ($fields as $name => $def) {
+      if (!empty($values['field_source_' . $name])) {
+        $source_name = $values['field_source_' . $name];
+        $source = $source_fields[$source_name];
 
-  $fields = datapoint_managed_fields($content_type);
-  $source_fields = datapoint_source_fields($parser);
-  foreach ($fields as $name => $def) {
-    if (!empty($values['field_source_' . $name])) {
-      $source_name = $values['field_source_' . $name];
-      $source = $source_fields[$source_name];
+        $field_conf = array(
+          'source' => $source_name,
+        );
 
-      $field_conf = array(
-        'source' => $source_name,
-      );
+        if (!empty($source['configuration_form'])) {
+          $field_conf['configuration'] = call_user_func($source['configuration_form'] . '_submit', $name, $values);
+        }
 
-      if (!empty($source['configuration_form'])) {
-        $field_conf['configuration'] = call_user_func($source['configuration_form'] . '_submit', $name, $values);
+        $configuration['fields'][$name] = $field_conf;
       }
-
-      $configuration['fields'][$name] = $field_conf;
+      $dp_field_options[$name] = $def['description'];
     }
-    $dp_field_options[$name] = $def['description'];
   }
 
   return $configuration;
@@ -212,7 +222,8 @@ function datapoint_ahah_field_source_configuration($parser, $field) {
 
 function _datapoint_admin_add_source_type_submit($form, $form_state) {
   $values = $form_state['values'];
-  drupal_goto('admin/content/datapoint/source-types/add/' . $values['parser_type'] . '/' . $values['content_type']);
+  drupal_goto('admin/content/datapoint/source-types/add/' . $values['parser_type'] .
+    (!empty($values['content_type'])?'/' . $values['content_type']:''));
 }
 
 function _datapoint_source_type_configure($form_state, $module) {

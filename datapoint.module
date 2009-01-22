@@ -129,6 +129,7 @@ function datapoint_menu() {
     'file' => 'datapoint.admin.inc',
     'type' => MENU_NORMAL_ITEM,
   );
+  $menu['admin/content/datapoint/source-types/add/%'] = 
   $menu['admin/content/datapoint/source-types/add/%/%'] = array(
     'title' => 'Source type settings',
     'page callback' => 'drupal_get_form',
