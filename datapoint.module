@@ -24,34 +24,66 @@ function datapoint_cron() {
   set_time_limit(0);
   require_once('datapoint.admin.inc');
 
-  //Update sources that never have been updated or haven't been updated in one hour, limit to five
-  $res = db_query_range("SELECT sid FROM {datapoint_source}
+  $time = time();
+  $offset = 0;
+  $found = 0;
+  $query = "SELECT sid, last_update FROM {datapoint_source}
     WHERE last_update<%d
     ORDER BY pinged DESC,
-      last_update ASC", time()-(60*60*2), 0, 5);
-  if ($o = db_fetch_object($res)) {
-    datapoint_update_source($o->sid);
+      last_update ASC";
+  $param = $time-(60*30);
+
+  //Update sources that never have been updated or haven't been updated in half an hour, limit to five
+  while ($res = db_query_range($query, $param, $offset * 25, ($offset + 1) * 25)) {
+    if ($o = db_fetch_object($res)) {
+      do {
+        if (datapoint_update_source($o->sid, $time - $o->last_update)) {
+          $found = $found + 1;
+        }
+      } while ($found < 5 && $o = db_fetch_object($res));
+      if ($found > 3) {
+        break;
+      }
+    }
+    else {
+      break;
+    }
+    $offset = $offset + 1;
   }
 
   //Update and create nodes
   datapoint_update_nodes();
+
+  //Clean up sources
+  module_invoke_all('datapoint_cleanup');
 }
 
-function datapoint_update_source($sid) {
+function datapoint_update_source($sid, $since_last_update) {
   $source = datapoint_source($sid);
-
   if ($source) {
     $parser = datapoint_parser_info($source['parser']);
+
+    //Check if it should be updated
+    if (
+      (is_callable($parser['update check']) && !call_user_func($parser['update check'], $since_last_update, $source)) ||
+      (isset($parser['update limit']) && ((int)$parser['update limit']) > $since_last_update)
+    ) {
+      return FALSE;
+    }
+
+    //Fetch the new data and update the source
     if (is_callable($parser['fetch'])) {
       require_once('datapoint.inc');
       $results = new DatapointResults($source);
-      call_user_func($parser['fetch'], $source, $results);
+      $done = call_user_func($parser['fetch'], $source, $results);
 
       // Store the results from the fetch
       datapoint_store($source, $results);
 
-      // Mark the source as updated, and clear ping flag
-      db_query("UPDATE {datapoint_source} SET pinged=0, last_update=%d WHERE sid=%d", time(), $sid);
+      if ($done !== FALSE) {
+        // Mark the source as updated, and clear ping flag
+        db_query("UPDATE {datapoint_source} SET pinged=0, last_update=%d WHERE sid=%d", time(), $sid);
+      }
     }
     return TRUE;
   }
@@ -447,6 +479,12 @@ function datapoint_store($source, &$results) {
   $vertex_table = $source['parser'] . '_vertex';
 
   foreach($results as $extid => $point) {
+    $hooks = module_implements('datapoint_pointapi');
+    foreach ($hooks as $name) {
+      $function = $name . '_datapoint_pointapi';
+      $function($point, 'presave');
+    }
+
     $dbp = datapoint_by_external_id($source['sid'], $extid);
 
     // If the data point exists in the database
@@ -455,13 +493,13 @@ function datapoint_store($source, &$results) {
       db_query("DELETE FROM {{$vertex_table}} WHERE pid=%d AND valid_from>=%d",
         $dbp->pid, $point->getStartTime());
       // ...update the data point
-      db_query("UPDATE {datapoint} SET name='%s', data='%s', dirty=1 WHERE pid=%d",
-        $point->getName(), serialize($point->getData()), $dbp->pid);
+      db_query("UPDATE {datapoint} SET name='%s', data='%s', dirty=%d WHERE pid=%d",
+        $point->getName(), serialize($point->getData()), $point->setHasNodes() ? 1 : 0, $dbp->pid);
     }
     else {
       // ...otherwise we just want to add the datapoint
-      db_query("INSERT INTO {datapoint}(sid, external_id, name, data, dirty) VALUES(%d, '%s', '%s', '%s', 1)",
-        $source['sid'], $extid, $point->getName(), serialize($point->getData()));
+      db_query("INSERT INTO {datapoint}(sid, external_id, name, data, dirty) VALUES(%d, '%s', '%s', '%s', %d)",
+        $source['sid'], $extid, $point->getName(), serialize($point->getData()), $point->setHasNodes() ? 1 : 0);
       $dbp = datapoint_by_external_id($source['sid'], $extid);
     }
 
@@ -469,6 +507,12 @@ function datapoint_store($source, &$results) {
     $schema = datapoint_vertex_module_fields($source['parser']);
 
     foreach ($point as $vertex) {
+      $hooks = module_implements('datapoint_vertexapi');
+      foreach ($hooks as $name) {
+        $function = $name . '_datapoint_vertexapi';
+        $function($vertex, 'presave', $point);
+      }
+
       $attr = $vertex->getValues();
 
       // Set up our field & values arrays with the two default columns
@@ -603,10 +647,26 @@ function datapoint_update_node($source, $datapoint, $vertex) {
       call_user_func_array($managed_def['setter'], array(&$node, $field, $managed_def, $value));
     }
   }
+  $hooks = module_implements('datapoint_vertexapi');
+  foreach ($hooks as $name) {
+    $function = $name . '_datapoint_vertexapi';
+    $function($vertex, 'create_node', $datapoint, $node);
+  }
 
   node_save($node);
 
   db_query("UPDATE {datapoint} SET dirty=0, vid=%d, nid=%d WHERE pid=%d", $vertex->vid, $node->nid, $datapoint->pid);
 
   return $node;
+}
+
+
+/**
+ * Implementation of hook_views_api().
+ */
+function datapoint_views_api() {
+  return array(
+    'api' => 2,
+    'path' => drupal_get_path('module', 'datapoint') . '/includes',
+  );
 }

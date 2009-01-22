@@ -34,6 +34,7 @@ class Datapoint implements IteratorAggregate {
   private $fromTime;
   private $name;
   private $data;
+  private $hasNodes = TRUE;
 
   function Datapoint($externalId) {
     $this->externalId = $externalId;
@@ -95,6 +96,13 @@ class Datapoint implements IteratorAggregate {
 
   public function getData() {
     return $this->data;
+  }
+
+  public function setHasNodes($value = NULL) {
+    if ($value !== NULL) {
+      $this->hasNodes = $value;
+    }
+    return $this->hasNodes;
   }
 }
 
