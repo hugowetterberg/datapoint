@@ -478,24 +478,36 @@ function datapoint_store($source, &$results) {
   
   require_once(drupal_get_path('module', 'datapoint') . '/datapoint.vertex-install.inc');
   $vertex_table = $source['parser'] . '_vertex';
+  $parser = call_user_func($source['parser'] . '_datapoint_parser');
 
+  $pointapi_hooks = module_implements('datapoint_pointapi');
+  $vertexapi_hooks = module_implements('datapoint_vertexapi');
+  
   foreach($results as $extid => $point) {
-    $hooks = module_implements('datapoint_pointapi');
-    foreach ($hooks as $name) {
+    foreach ($pointapi_hooks as $name) {
       $function = $name . '_datapoint_pointapi';
       $function($point, 'presave');
     }
 
     $dbp = datapoint_by_external_id($source['sid'], $extid);
+    $only_add = isset($parser['only add vertexes']) && $parser['only add vertexes'];
 
     // If the data point exists in the database
     if ($dbp) {
-      // ...delete vertexes that overlap or are later than what we're currently adding
-      db_query("DELETE FROM {{$vertex_table}} WHERE pid=%d AND valid_from>=%d",
-        $dbp->pid, $point->getStartTime());
-      // ...update the data point
-      db_query("UPDATE {datapoint} SET name='%s', data='%s', dirty=%d WHERE pid=%d",
-        $point->getName(), serialize($point->getData()), $point->setHasNodes() ? 1 : 0, $dbp->pid);
+      if (!$only_add) {
+        // ...delete vertexes that overlap or are later than what we're currently adding
+        db_query("DELETE FROM {{$vertex_table}} WHERE pid=%d AND valid_from>=%d",
+          $dbp->pid, $point->getStartTime());
+        // ...update the data point
+        db_query("UPDATE {datapoint} SET name='%s', data='%s', dirty=%d WHERE pid=%d",
+          $point->getName(), serialize($point->getData()), $point->setHasNodes() ? 1 : 0, $dbp->pid);
+      }
+      else { // We're only allowed to add vertexes
+        // ...find out what time we should start adding from
+        $last_vertex_time = db_result(db_query("SELECT MAX(valid_from) FROM {{$vertex_table}} WHERE pid=%d",
+          $dbp->pid));
+        $last_vertex_time = $last_vertex_time ? $last_vertex_time : 0;
+      }
     }
     else {
       // ...otherwise we just want to add the datapoint
@@ -508,8 +520,12 @@ function datapoint_store($source, &$results) {
     $schema = datapoint_vertex_module_fields($source['parser']);
 
     foreach ($point as $vertex) {
-      $hooks = module_implements('datapoint_vertexapi');
-      foreach ($hooks as $name) {
+      // Skip old vertexes
+      if ($only_add && $vertex->getTime()<=$last_vertex_time) {
+        continue;
+      }
+      
+      foreach ($vertexapi_hooks as $name) {
         $function = $name . '_datapoint_vertexapi';
         $function($vertex, 'presave', $point);
       }
