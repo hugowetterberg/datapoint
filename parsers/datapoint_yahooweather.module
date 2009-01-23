@@ -1,10 +1,19 @@
 <?php
+if (!defined('NS_YAHOO_WEATHER')) {
+  define('NS_YAHOO_WEATHER', 'http://xml.weather.yahoo.com/ns/rss/1.0');
+}
+if (!defined('YAHOO_WEATHER_ENDPOINT')) {
+  define('YAHOO_WEATHER_ENDPOINT', 'http://xml.weather.yahoo.com/forecastrss');
+}
 
 function datapoint_yahooweather_datapoint_parser() {
   return array(
     'name' => t('Yahoo Weather'),
     'configuration' => '_datapoint_yahooweather_configuration',
     'update limit' => 60*60*3, //Three hours
+    'source configuration'        => '_datapoint_yahooweather_configuration',
+    'source configuration submit' => '_datapoint_yahooweather_configuration_submit',
+    'fetch'                       => '_datapoint_yahooweather_fetch',
   );
 }
 
@@ -18,23 +27,36 @@ function _datapoint_yahooweather_configuration($configuration) {
   return $settings;
 }
 
-function _datapoint_yahooweather_configuration_submit($form, $state) {
-  var_dump($form, $state); die;
+function _datapoint_yahooweather_configuration_submit($values) {
+  return array(
+    'city code' => $values['city_code'],
+  );
 }
 
-function datapoint_yahooweather_datapoint_parseresult($data, &$results) {
+function _datapoint_yahooweather_fetch($source, &$result) {
+  $city = $source['source configuration']['city code'];
+  datapoint_url_fetch(YAHOO_WEATHER_ENDPOINT . '?p=' . $city . '&u=c',
+    $source, $result, '_datapoint_yahooweather_datapoint_parseresult');
+}
+
+function _datapoint_yahooweather_datapoint_parseresult($data, &$source, &$result) {
   $doc = new DOMDocument();
   $doc->loadXML($data);
-  $items = $doc->getElementsByTagNameNS('http://xml.weather.yahoo.com/ns/rss/1.0', 'forecast');
+  
+  $point = $point = $result->point($source['source configuration']['city code']);
+  $point->setName($source['source configuration']['city code']);
+  $point->setHasNodes(FALSE);
+  
+  $items = $doc->getElementsByTagNameNS(NS_YAHOO_WEATHER, 'forecast');
   foreach ($items as $item) {
-    print '<p>';
-    foreach ($item->attributes as $attr => $attrNode) {
-      $value = $attrNode->value;
-      if ($attr == 'date') {
-        $value = date('c', strtotime($value));
-      }
-      print $attr . ' = ' . $value . '<br/>';
-    }
-    print '</p>';
+    $time = strtotime($item->getAttribute('date'));
+    $vertex = new DatapointVertex($time);
+    $vertex->xmlAttributes($item, array(
+      'low' =>'low',
+      'high'=>'high',
+      'text'=>'text',
+      'code'=>'code',
+    ));
+    $point->addVertex($vertex);
   }
 }

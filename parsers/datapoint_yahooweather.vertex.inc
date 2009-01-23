@@ -9,7 +9,7 @@ function datapoint_yahooweather_vertex_schema() {
         'type' => 'int',
         'unsigned' => FALSE,
         'not null' => TRUE,
-        'default' => 0
+        'default' => 0,
       ),
       'high' => array(
         'description' => t('The highest temperature during the day.'),
