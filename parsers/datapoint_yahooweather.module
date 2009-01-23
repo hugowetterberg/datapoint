@@ -60,3 +60,23 @@ function _datapoint_yahooweather_datapoint_parseresult($data, &$source, &$result
     $point->addVertex($vertex);
   }
 }
+
+/**
+ * Implementation of hook_views_handlers() to register all of the basic handlers
+ * views uses.
+ */
+function datapoint_yahooweather_views_handlers() {
+  return array(
+    'info' => array(
+      'path' => drupal_get_path('module', 'datapoint') . '/includes',
+    ),
+    'handlers' => array(
+      'views_handler_field_yahoo_weather_code' => array(
+        'parent' => 'views_handler_field',
+      ),
+      'views_handler_field_yahoo_weather_temperature' => array(
+        'parent' => 'views_handler_field',
+      )
+    ),
+  );
+}

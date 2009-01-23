@@ -128,7 +128,130 @@ function datapoint_views_data() {
     ),
   );
 
+  $modules = module_implements('datapoint_parser');
+  foreach ($modules as $module) {
+    // Make sure that the vertex module doesn't provide it's own views integration
+    if (!is_callable($module . '_views_api')) {
+      $data[$module . '_vertex'] = datapoint_automatic_views_integration($module);
+    }
+    
+    //Add the vertex join to the datapoint table
+    $data['datapoint']['table']['join'][$module . '_vertex'] = array(
+      'left_field' => 'vid',
+      'field' => 'vid',
+    );
+    
+    drupal_alter('datapoint_vertex_views_integration', $mview, $module . '_vertex');
+  }
+  
   return $data;
+}
+
+function datapoint_automatic_views_integration($module) {
+  module_load_include('inc', 'datapoint', 'datapoint.vertex-install');
+  $schema = datapoint_vertex_module_fields($module);
+  
+  $mview = array();
+  $mview['table'] = array(
+    'group' => 'Datapoint',
+    'base' => array(
+      'field' => 'vid',
+      'title' => 'Datapoint vertex',
+    ),
+    'join' => array(
+      'datapoint' => array(
+        'left_field' => 'pid',
+        'field' => 'pid',
+      ),
+    )
+  );
+  
+  $mview['vid'] = array(
+    'title' => 'Vertex id',
+    'help' => 'The id of the vertex',
+    'field' => array(
+      'handler' => 'views_handler_field',
+      'click sortable' => TRUE,
+    ),
+  );
+  
+  $mview['pid'] = array(
+    'title' => 'Point id',
+    'help' => 'The id of the point that the vertex belongs to',
+    'field' => array(
+      'handler' => 'views_handler_field',
+      'click sortable' => TRUE,
+    ),
+  );
+  
+  $mview['valid_from'] = array(
+    'title' => 'Valid from',
+    'help' => 'The time the vertex is valid from',
+    'field' => array(
+      'handler' => 'views_handler_field_date',
+      'click sortable' => TRUE,
+    ),
+    'sort' => array(
+      'handler' => 'views_handler_sort_date',
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_date',
+    ),
+  );
+
+  foreach ($schema[fields] as $name => $def) {
+    $vfield = array(
+      'title' => $name,
+      'help' => $def['description'],
+      'field' => array(
+        'handler' => 'views_handler_field',
+        'click sortable' => TRUE,
+      ),
+      'add_some' => array('greeting'=>'hi'),
+    );
+    
+    switch ($def['type']) {
+      case 'int':
+        $vfield['filter']['handler'] = 'views_handler_filter_numeric';
+        $vfield['argument']['handler'] = 'views_handler_argument_numeric';
+      break;
+      case 'varchar':
+      case 'char':
+      case 'text':
+        $vfield['filter']['handler'] = 'views_handler_filter_string';
+        $vfield['argument']['handler'] = 'views_handler_argument_string';
+      break;
+      case 'datetime':
+        $vfield['field']['handler'] = 'views_handler_field_date';
+        $vfield['filter']['handler'] = 'views_handler_filter_date';
+        $vfield['argument']['handler'] = 'views_handler_argument_date';
+      break;
+    }
+    
+    if (isset($def['#views'])) {
+      datapoint_merge_views_field($vfield, $def['#views']);
+    }
+    
+    $mview[$name] = $vfield;
+  }
+  
+  return $mview;
+}
+
+function datapoint_merge_views_field(&$base_def, $extend) {
+  foreach ($extend as $key => $value) {
+    if (is_array($value) && is_array($base_def[$key])) {
+      datapoint_merge_views_field($base_def[$key], $value);
+    }
+    else {
+      if (is_numeric($key)) {
+        $base_def[] = $value;
+      }
+      else {
+        $base_def[$key] = $value;
+      }
+    }
+  }
 }
 
 /**
