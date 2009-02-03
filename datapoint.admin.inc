@@ -444,13 +444,6 @@ function datapoint_export_source($sid) {
   }
 }
 
-function datapoint_parser_info($parser_module) {
-  if (is_callable($parser_module . '_datapoint_parser')) {
-    return call_user_func($parser_module . '_datapoint_parser');
-  }
-  return array();
-}
-
 /**
  * Marks the source as pinged and gives it priority during the next update
  *

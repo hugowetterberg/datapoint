@@ -58,9 +58,27 @@ function datapoint_cron() {
   module_invoke_all('datapoint_cleanup');
 }
 
-function datapoint_update_source($sid, $since_last_update) {
+/**
+ * Update a source.
+ *
+ * @param int $sid
+ *  The id of the source that should be updated.
+ * @param int $since_last_update
+ *  Optional. The time that has passed since last update.
+ *  TODO:
+ *    Not really sure why this should be passed as param, as we store information about last_update,
+ *    must check with @voxpelli if it's something that he uses.
+ *
+ * @return bool
+ *  Return s TRUE on success, otherwise false is returned.
+ */
+function datapoint_update_source($sid, $since_last_update=NULL) {
   $source = datapoint_source($sid);
   if ($source) {
+    if ($since_last_update===NULL) {
+      $since_last_update = time() - $source->last_update;
+    }
+
     $parser = datapoint_parser_info($source['parser']);
 
     //Check if it should be updated
@@ -129,7 +147,7 @@ function datapoint_menu() {
     'file' => 'datapoint.admin.inc',
     'type' => MENU_NORMAL_ITEM,
   );
-  $menu['admin/content/datapoint/source-types/add/%'] = 
+  $menu['admin/content/datapoint/source-types/add/%'] =
   $menu['admin/content/datapoint/source-types/add/%/%'] = array(
     'title' => 'Source type settings',
     'page callback' => 'drupal_get_form',
@@ -324,9 +342,13 @@ function datapoint_source($sid) {
   static $cache = array();
 
   if (!isset($cache[$sid])) {
-    $res = db_query("SELECT configuration FROM {datapoint_source} WHERE sid='%d'", $sid);
+    $res = db_query("SELECT configuration, last_update, pinged FROM {datapoint_source} WHERE sid='%d'", $sid);
+
+    // TODO: This is pretty strange, we're double-storing stuff in configuration and db-columns
     if ($o = db_fetch_object($res)) {
       $source = unserialize($o->configuration);
+      $source['last_update'] = $o->last_update;
+      $source['pinged'] = $o->pinged;
       $source['sid'] = $sid;
       $cache[$sid] = $source;
     }
@@ -350,6 +372,21 @@ function datapoint_by_external_id($source, $id) {
     return $point;
   }
   return FALSE;
+}
+
+/**
+ * Gets information about the parser
+ *
+ * @param string $parser_module
+ *  The name of the parser
+ * @return array
+ *  The parser definition
+ */
+function datapoint_parser_info($parser_module) {
+  if (is_callable($parser_module . '_datapoint_parser')) {
+    return call_user_func($parser_module . '_datapoint_parser');
+  }
+  return array();
 }
 
 /**
@@ -477,14 +514,14 @@ function datapoint_url_fetch($url, $source, &$result, $callback) {
  **/
 function datapoint_store($source, &$results) {
   set_time_limit(0);
-  
+
   require_once(drupal_get_path('module', 'datapoint') . '/datapoint.vertex-install.inc');
   $vertex_table = $source['parser'] . '_vertex';
   $parser = call_user_func($source['parser'] . '_datapoint_parser');
 
   $pointapi_hooks = module_implements('datapoint_pointapi');
   $vertexapi_hooks = module_implements('datapoint_vertexapi');
-  
+
   foreach($results as $extid => $point) {
     foreach ($pointapi_hooks as $name) {
       $function = $name . '_datapoint_pointapi';
@@ -526,7 +563,7 @@ function datapoint_store($source, &$results) {
       if ($only_add && $vertex->getTime()<=$last_vertex_time) {
         continue;
       }
-      
+
       foreach ($vertexapi_hooks as $name) {
         $function = $name . '_datapoint_vertexapi';
         $function($vertex, 'presave', $point);
