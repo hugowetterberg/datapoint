@@ -365,12 +365,14 @@ function datapoint_add_source_type($configuration) {
 /**
  * Saves a source in the database
  *
- * @return void
+ * @return int
+ *  The id of the source
  **/
 function datapoint_add_source($configuration) {
   db_query("INSERT INTO {datapoint_source}(source_type, name, last_update, configuration)
     VALUES('%s','%s',0,'%s')",
     $configuration['type'], $configuration['name'], serialize($configuration));
+  return db_last_insert_id('datapoint_source', 'sid');
 }
 
 /**
