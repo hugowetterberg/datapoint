@@ -666,52 +666,59 @@ function datapoint_update_nodes() {
  **/
 function datapoint_update_node($source, $datapoint, $vertex) {
   $source_type = datapoint_source_type($source['type']);
-
-  $node = NULL;
-  if ($datapoint->nid) {
-    $node = node_load($datapoint->nid);
-  }
-  if (!$node) {
-    $node = new stdClass();
-    $node->type = $source_type['content_type'];
-
-    module_load_include('inc', 'node', 'node.pages');
-
-    // Prepare node object
-    node_object_prepare($node);
-
-    // Set the default taxonomy for the source
-    $node->taxonomy = $source['taxonomy'];
-  }
-
-  $fields = $source_type['fields'];
-  $source_fields = datapoint_source_fields($source_type['parser']);
-  $managed_fields = datapoint_managed_fields($node->type);
-
-  // Iterate through the fields configured in the source type and
-  // get source values and feed them to the setters
-  foreach ($fields as $managed_name => $field) {
-    $source_name = $field['source'];
-
-    if (isset($managed_fields[$managed_name]) && isset($source_fields[$source_name])) {
-      // Get the source definition and execute it's callback
-      $source_def = $source_fields[$source_name];
-      $value = call_user_func_array($source_def['callback'], array(&$node, $managed_name, $field, $source_def, $datapoint, $vertex));
-
-      // Get the managed definition and execute it's callback
-      $managed_def = $managed_fields[$managed_name];
-      call_user_func_array($managed_def['setter'], array(&$node, $field, $managed_def, $value));
+  
+  // Check if we should create a node
+  if(!empty($source_type['content_type'])) {
+    $node = NULL;
+    if ($datapoint->nid) {
+      $node = node_load($datapoint->nid);
     }
+    if (!$node) {
+      $node = new stdClass();
+      $node->type = $source_type['content_type'];
+
+      module_load_include('inc', 'node', 'node.pages');
+
+      // Prepare node object
+      node_object_prepare($node);
+
+      // Set the default taxonomy for the source
+      $node->taxonomy = $source['taxonomy'];
+    }
+
+    $fields = $source_type['fields'];
+    $source_fields = datapoint_source_fields($source_type['parser']);
+    $managed_fields = datapoint_managed_fields($node->type);
+
+    // Iterate through the fields configured in the source type and
+    // get source values and feed them to the setters
+    foreach ($fields as $managed_name => $field) {
+      $source_name = $field['source'];
+
+      if (isset($managed_fields[$managed_name]) && isset($source_fields[$source_name])) {
+        // Get the source definition and execute it's callback
+        $source_def = $source_fields[$source_name];
+        $value = call_user_func_array($source_def['callback'], array(&$node, $managed_name, $field, $source_def, $datapoint, $vertex));
+
+        // Get the managed definition and execute it's callback
+        $managed_def = $managed_fields[$managed_name];
+        call_user_func_array($managed_def['setter'], array(&$node, $field, $managed_def, $value));
+      }
+    }
+    $hooks = module_implements('datapoint_vertexapi');
+    foreach ($hooks as $name) {
+      $function = $name . '_datapoint_vertexapi';
+      $function($vertex, 'create_node', $datapoint, $node);
+    }
+
+    node_save($node);
+    $nid = $node->nid;
   }
-  $hooks = module_implements('datapoint_vertexapi');
-  foreach ($hooks as $name) {
-    $function = $name . '_datapoint_vertexapi';
-    $function($vertex, 'create_node', $datapoint, $node);
+  else {
+    $nid = 0;
   }
 
-  node_save($node);
-
-  db_query("UPDATE {datapoint} SET dirty=0, vid=%d, nid=%d WHERE pid=%d", $vertex->vid, $node->nid, $datapoint->pid);
+  db_query("UPDATE {datapoint} SET dirty=0, vid=%d, nid=%d WHERE pid=%d", $vertex->vid, $nid, $datapoint->pid);
 
   return $node;
 }
