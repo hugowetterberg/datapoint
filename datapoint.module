@@ -119,6 +119,7 @@ function datapoint_menu() {
   $menu = array();
   $menu['admin/content/datapoint'] = array(
     'title' => 'Data points',
+    'description' => 'Show and edit datapoint sources and source types',
     'page callback' => '_datapoint_admin_index_page',
     'access arguments' => array('administer datapoint sources'),
     'file' => 'datapoint.admin.inc',
@@ -360,6 +361,14 @@ function datapoint_source($sid) {
   return $cache[$sid];
 }
 
+function datapoint_by_id($id) {
+  $res = db_query("SELECT * FROM {datapoint} WHERE pid=%d", $id);
+  if ($point = db_fetch_object($res)) {
+    return $point;
+  }
+  return FALSE;
+}
+
 /**
  * Loads a datapoint from the given $source with the specified external $id.
  * The $source acts as a namespace for external id:s
@@ -395,8 +404,13 @@ function datapoint_parser_info($parser_module) {
  * @return void
  **/
 function datapoint_add_source_type($configuration) {
-  db_query("INSERT INTO {datapoint_source_type}(type, name, configuration) VALUES('%s','%s','%s')",
-    $configuration['type'], $configuration['name'], serialize($configuration));
+  db_query("INSERT INTO {datapoint_source_type}(type, name, managed, configuration)
+    VALUES('%s','%s','%s')", array(
+      ':type' => $configuration['type'],
+      ':name' => $configuration['name'],
+      ':managed' => isset($configuration['managed'])?$configuration['managed']:0,
+      ':configuration' => serialize($configuration),
+    ));
 }
 
 /**
@@ -406,9 +420,13 @@ function datapoint_add_source_type($configuration) {
  *  The id of the source
  **/
 function datapoint_add_source($configuration) {
-  db_query("INSERT INTO {datapoint_source}(source_type, name, last_update, configuration)
-    VALUES('%s','%s',0,'%s')",
-    $configuration['type'], $configuration['name'], serialize($configuration));
+  db_query("INSERT INTO {datapoint_source}(source_type, name, last_update, managed, configuration)
+    VALUES('%s','%s',0,%d,'%s')", array(
+      ':type' => $configuration['type'],
+      ':name' => $configuration['name'],
+      ':managed' => isset($configuration['managed'])?$configuration['managed']:0,
+      ':configuration' => serialize($configuration),
+    ));
   return db_last_insert_id('datapoint_source', 'sid');
 }
 

@@ -1,11 +1,77 @@
 <?php
 
 function _datapoint_admin_index_page() {
-  return 'Index?';
+  global $pager_total, $pager_page_array;
+
+  $page = isset($_GET['page'])?$_GET['page']:0;
+  $total = db_result(db_query('SELECT COUNT(sid) FROM {datapoint_source}'));
+  $page_size = 20;
+
+  $pager_page_array[0] = $page;
+  $pager_total[0] = $total;
+
+  $res = db_query_range("SELECT sid, source_type, name, pinged, last_update, managed FROM {datapoint_source}
+    ORDER BY name, managed", $page*$page_size, $page_size);
+  $header = array(t('Name'), t('Type'), t('Updated'), t('Actions'));
+  $rows = array();
+
+  if ($total>$page_size) {
+    $out = theme('pager', $page_size);
+  }
+
+  while ($row = db_fetch_object($res)) {
+    $rows[] = array(
+      l($row->name, 'admin/content/datapoint/source/' . $row->sid) . ($row->managed?(' ' . t('(managed)')):''),
+      l($row->source_type, 'admin/content/datapoint/source-type/' . $row->source_type),
+      ($row->last_update ? format_date($row->last_update) : t('Not updated')) .
+        ($row->pinged?(' ' . t('(pinged)')):''),
+      l('Export', 'admin/content/datapoint/source/export/'. $row->sid),
+    );
+  }
+  $out .= theme('table', $header, $rows);
+  
+  if ($total>$page_size) {
+    $out = theme('pager', $page_size);
+  }
+  
+  return $out;
 }
 
 function _datapoint_admin_source_types() {
-  return 'List?';
+  global $pager_total, $pager_page_array;
+
+  $page = isset($_GET['page'])?$_GET['page']:0;
+  $total = db_result(db_query('SELECT COUNT(type) FROM {datapoint_source_type}'));
+  $page_size = 20;
+
+  $pager_page_array[0] = $page;
+  $pager_total[0] = $total;
+
+  $res = db_query_range("SELECT * FROM {datapoint_source_type}
+    ORDER BY name, managed", $page*$page_size, $page_size);
+  $header = array(t('Name'), t('Parser'), t('Creates nodes'), t('Actions'));
+  $rows = array();
+
+  if ($total>$page_size) {
+    $out = theme('pager', $page_size);
+  }
+
+  while ($row = db_fetch_object($res)) {
+    $conf = unserialize($row->configuration);
+    $rows[] = array(
+      l($row->name, 'admin/content/datapoint/source-type/' . $row->type) . ($row->managed?(' ' . t('(managed)')):''),
+      $conf['parser'],
+      $conf['content_type'] ? $conf['content_type'] : t('None'),
+      l('Export', 'admin/content/datapoint/source-types/export/'. $row->type),
+    );
+  }
+  $out .= theme('table', $header, $rows);
+
+  if ($total>$page_size) {
+    $out = theme('pager', $page_size);
+  }
+
+  return $out;
 }
 
 function _datapoint_admin_add_source_type($state) {
@@ -427,7 +493,7 @@ function datapoint_ahah_source_configuration() {
 function datapoint_export_source_type($type) {
   $source_type = datapoint_source_type($type);
   if ($source_type) {
-    return '<textarea>' . htmlspecialchars(var_export($source_type, true)) . '</textarea>';
+    return '<textarea rows="20" cols="40">' . htmlspecialchars(var_export($source_type, true)) . '</textarea>';
   }
   else {
     drupal_not_found();
@@ -437,7 +503,7 @@ function datapoint_export_source_type($type) {
 function datapoint_export_source($sid) {
   $source = datapoint_source($sid);
   if ($source) {
-    return '<textarea>' . htmlspecialchars(var_export($source, true)) . '</textarea>';
+    return '<textarea rows="20" cols="40">' . htmlspecialchars(var_export($source, true)) . '</textarea>';
   }
   else {
     drupal_not_found();

@@ -47,6 +47,13 @@ function datapoint_schema() {
         'not null' => TRUE,
         'default' => 0,
       ),
+      'managed' => array(
+        'description' => t('Set to 1 if the source is managed by another module and shouldn\'t be exposed in admin.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ),
       'configuration' => array(
         'description' => t('Serialized configuration data for the source.'),
         'type' => 'text',
@@ -78,6 +85,13 @@ function datapoint_schema() {
         'type' => 'text',
         'not null' => TRUE,
         'size' => 'big',
+      ),
+      'managed' => array(
+        'description' => t('Set to 1 if the source type is managed by another module and shouldn\'t be exposed in admin.'),
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
       ),
     ),
     'primary key' => array('type'),
@@ -160,5 +174,27 @@ function datapoint_update_1() {
     ADD INDEX nid(nid),
     ADD INDEX dirty(dirty)");
   
+  return $ret;
+}
+
+function datapoint_update_6002() {
+  $ret = array();
+
+  db_add_field($ret, 'datapoint_source_type', 'managed', array(
+    'description' => t('Set to 1 if the source type is managed by another module and shouldn\'t be exposed in admin.'),
+    'type' => 'int',
+    'unsigned' => TRUE,
+    'not null' => TRUE,
+    'default' => 0,
+  ));
+
+  db_add_field($ret, 'datapoint_source', 'managed', array(
+    'description' => t('Set to 1 if the source is managed by another module and shouldn\'t be exposed in admin.'),
+    'type' => 'int',
+    'unsigned' => TRUE,
+    'not null' => TRUE,
+    'default' => 0,
+  ));
+
   return $ret;
 }
