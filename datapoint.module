@@ -125,28 +125,53 @@ function datapoint_menu() {
     'file' => 'datapoint.admin.inc',
     'type' => MENU_NORMAL_ITEM,
   );
+  $menu['admin/content/datapoint/sources'] = array(
+    'title' => 'Data point sources',
+    'description' => 'Datapoint source listing',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => -10,
+  );
   $menu['admin/content/datapoint/add-source'] = array(
-    'title' => 'Add new data point source',
+    'title' => 'Add source',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('_datapoint_source_add'),
     'access arguments' => array('administer datapoint sources'),
     'file' => 'datapoint.admin.inc',
-    'type' => MENU_NORMAL_ITEM,
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 0,
   );
   $menu['admin/content/datapoint/source-types'] = array(
     'title' => 'Source types',
     'page callback' => '_datapoint_admin_source_types',
     'access arguments' => array('administer datapoint sources'),
     'file' => 'datapoint.admin.inc',
-    'type' => MENU_NORMAL_ITEM,
+    'type' => MENU_LOCAL_TASK,
+    'weight' => -5,
   );
-  $menu['admin/content/datapoint/source-types/add'] = array(
+  $menu['admin/content/datapoint/add-source-type'] = array(
     'title' => 'Add source type',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('_datapoint_admin_add_source_type'),
     'access arguments' => array('administer datapoint sources'),
     'file' => 'datapoint.admin.inc',
-    'type' => MENU_NORMAL_ITEM,
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 5,
+  );
+  $menu['admin/content/datapoint/source/%'] = array(
+    'title' => 'Source',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('_datapoint_admin_edit_source', 4),
+    'access arguments' => array('administer datapoint sources'),
+    'file' => 'datapoint.admin.inc',
+    'type' => MENU_CALLBACK,
+  );
+  $menu['admin/content/datapoint/source-type/%'] = array(
+    'title' => 'Source type',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('_datapoint_admin_edit_source_type', 4),
+    'access arguments' => array('administer datapoint sources'),
+    'file' => 'datapoint.admin.inc',
+    'type' => MENU_CALLBACK,
   );
   $menu['admin/content/datapoint/source-types/add/%'] =
   $menu['admin/content/datapoint/source-types/add/%/%'] = array(
@@ -192,6 +217,7 @@ function datapoint_menu() {
     'page arguments' => array(2),
     'access arguments' => array('access content'),
     'file' => 'datapoint.admin.inc',
+    'type' => MENU_CALLBACK,
   );
 
   // Ahah callbacks
@@ -327,9 +353,10 @@ function _datapoint_source_fields(&$node, $field_name, $field, $source, $datapoi
  * @return array Source type configuration
  **/
 function datapoint_source_type($type) {
-  $res = db_query("SELECT configuration FROM {datapoint_source_type} WHERE type='%s'", $type);
-  if ($source = db_fetch_object($res)) {
-    return unserialize($source->configuration);
+  $res = db_query("SELECT * FROM {datapoint_source_type} WHERE type='%s'", $type);
+  if ($source_type = db_fetch_array($res)) {
+    $configuration = unserialize($source_type['configuration']);
+    return array_merge($source_type, $configuration);
   }
   return FALSE;
 }
@@ -343,14 +370,21 @@ function datapoint_source($sid) {
   static $cache = array();
 
   if (!isset($cache[$sid])) {
-    $res = db_query("SELECT configuration, last_update, pinged FROM {datapoint_source} WHERE sid='%d'", $sid);
+    $res = db_query("SELECT * FROM {datapoint_source} WHERE sid='%d'", $sid);
 
-    // TODO: This is pretty strange, we're double-storing stuff in configuration and db-columns
-    if ($o = db_fetch_object($res)) {
-      $source = unserialize($o->configuration);
-      $source['last_update'] = $o->last_update;
-      $source['pinged'] = $o->pinged;
-      $source['sid'] = $sid;
+    if ($source = db_fetch_array($res)) {
+      // Unserialize configuration
+      $conf = unserialize($source['configuration']);
+      // Take care of old-style sources
+      if (isset($conf['source configuration'])) {
+        $conf = $conf['source configuration'];
+      }
+      $source['source configuration'] = $conf;
+      unset($source['configuration']);
+
+      // Backwards compat
+      $source['type'] = $source['source_type'];
+
       $cache[$sid] = $source;
     }
     else {
@@ -403,31 +437,45 @@ function datapoint_parser_info($parser_module) {
  *
  * @return void
  **/
-function datapoint_add_source_type($configuration) {
-  db_query("INSERT INTO {datapoint_source_type}(type, name, managed, configuration)
-    VALUES('%s','%s','%s')", array(
-      ':type' => $configuration['type'],
-      ':name' => $configuration['name'],
-      ':managed' => isset($configuration['managed'])?$configuration['managed']:0,
-      ':configuration' => serialize($configuration),
-    ));
+function datapoint_add_source_type($source_type, $update=FALSE) {
+  // Create a configuration array with the values not supported by the schema
+  $configuration = $source_type;
+  $schema = drupal_get_schema('datapoint_source_type');
+  foreach ($schema['fields'] as $field => $def) {
+    unset($configuration[$field]);
+  }
+
+  $source_type['configuration'] = serialize($configuration);
+  drupal_write_record('datapoint_source_type', $source_type, $update?array('type'):NULL);
 }
 
 /**
- * Saves a source in the database
+ * Adds a source to the database
+ *
+ * @param array $source
  *
  * @return int
  *  The id of the source
  **/
-function datapoint_add_source($configuration) {
-  db_query("INSERT INTO {datapoint_source}(source_type, name, last_update, managed, configuration)
-    VALUES('%s','%s',0,%d,'%s')", array(
-      ':type' => $configuration['type'],
-      ':name' => $configuration['name'],
-      ':managed' => isset($configuration['managed'])?$configuration['managed']:0,
-      ':configuration' => serialize($configuration),
-    ));
-  return db_last_insert_id('datapoint_source', 'sid');
+function datapoint_add_source($source) {
+  if (isset($source['source configuration'])) {
+    $source['configuration'] = serialize($source['source configuration']);
+  }
+  drupal_write_record('datapoint_source', $source);
+  return $source['sid'];
+}
+
+/**
+ * Updates a source database entry
+ *
+ * @param array $source
+ * @return void
+ */
+function datapoint_save_source($source) {
+  if (isset($source['source configuration'])) {
+    $source['configuration'] = serialize($source['source configuration']);
+  }
+  drupal_write_record('datapoint_source', $source, array('sid'));
 }
 
 /**
@@ -684,7 +732,7 @@ function datapoint_update_nodes() {
  **/
 function datapoint_update_node($source, $datapoint, $vertex) {
   $source_type = datapoint_source_type($source['type']);
-  
+
   // Check if we should create a node
   if(!empty($source_type['content_type'])) {
     $node = NULL;

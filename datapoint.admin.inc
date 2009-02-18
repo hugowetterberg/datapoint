@@ -29,11 +29,11 @@ function _datapoint_admin_index_page() {
     );
   }
   $out .= theme('table', $header, $rows);
-  
+
   if ($total>$page_size) {
     $out = theme('pager', $page_size);
   }
-  
+
   return $out;
 }
 
@@ -118,7 +118,7 @@ function _datapoint_admin_add_source_type($state) {
   return $form;
 }
 
-function _datapoint_admin_add_source_type_configure($form_state, $parser, $content_type=NULL) {
+function _datapoint_admin_add_source_type_configure($form_state, $parser, $content_type=NULL, $type=NULL) {
   $form = array(
     'parser' => array(
       '#type' => 'value',
@@ -130,18 +130,33 @@ function _datapoint_admin_add_source_type_configure($form_state, $parser, $conte
     ),
   );
 
-  $form['type'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Type'),
-    '#required' => TRUE,
-    '#description' => t('The machine-readable name of this source type. This name must contain only lowercase letters, numbers, and underscores. This name must be unique.'),
-  );
+  if ($type) {
+    $form['type'] = array(
+      '#type' => 'value',
+      '#value' => $type['type'],
+    );
+    $form['display_type'] = array(
+      '#type' => 'item',
+      '#title' => t('Type'),
+      '#value' => $type['type'],
+    );
+  }
+  else {
+    $form['type'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Type'),
+      '#required' => TRUE,
+      '#description' => t('The machine-readable name of this source type. This name must contain only lowercase letters, numbers, and underscores. This name must be unique.'),
+      '#default_value' => '',
+    );
+  }
 
   $form['name'] = array(
     '#type' => 'textfield',
     '#title' => t('Name'),
     '#required' => TRUE,
     '#description' => t('The human-readable name of this source type.'),
+    '#default_value' => $type?$type['name']:'',
   );
 
   if ($content_type) {
@@ -165,6 +180,7 @@ function _datapoint_admin_add_source_type_configure($form_state, $parser, $conte
         '#title' => $finfo['label'],
         '#required' => isset($finfo['required']) && $finfo['required'],
         '#options' => $dp_field_options,
+        '#default_value' => $type?$type['fields'][$name]['source']:'',
         '#ahah' => array(
           'method' => 'replace',
           'wrapper' => 'field-source-' . $name . '-configuration-placeholder',
@@ -172,12 +188,23 @@ function _datapoint_admin_add_source_type_configure($form_state, $parser, $conte
         ),
       );
 
-      $form['field_mappings']['field_source_' . $name . '_configuration_placeholder'] = array(
-        '#type' => 'markup',
+      $source = $type['fields'][$name]['source'];
+      if ($type && !empty($source) && is_callable($dp_fields[$source]['configuration_form'])) {
+        $set = call_user_func($dp_fields[$source]['configuration_form'], $form_state, $name);
+      }
+      else {
+        $conf = array(
+          '#type' => 'markup',
+          '#value' => '<span></span>',
+        );
+      }
+
+      $conf = array_merge($conf, array(
         '#prefix' => '<div id="field-source-' . $name . '-configuration-placeholder">',
         '#suffix' => '</div>',
-        '#value' => '<span></span>',
-      );
+      ));
+
+      $form['field_mappings']['field_source_' . $name . '_configuration_placeholder'] = $conf;
     }
 
     // Simulate a node form to get the taxonomy module to provide taxonomy fields
@@ -216,7 +243,7 @@ function _datapoint_admin_add_source_type_configure_validate($form, &$form_state
 function _datapoint_admin_add_source_type_configure_submit($form, $form_state) {
   $configuration = source_type_configuration_from_form_values($form_state['values']);
   datapoint_add_source_type($configuration);
-  
+
   drupal_set_message(t('The datapoint source type "!name" has been added', array(
     '!name' => $configuration['name'],
   )));
@@ -233,11 +260,11 @@ function source_type_configuration_from_form_values($values) {
     'content_type' => $content_type,
     'parser' => $parser,
   );
-  
+
   if ($content_type) {
-    $configuration['fields'] = array(); 
+    $configuration['fields'] = array();
     $configuration['taxonomy'] = taxonomy_preview_terms((object)array('taxonomy' => $values['taxonomy']));
-    
+
     $fields = datapoint_managed_fields($content_type);
     $source_fields = datapoint_source_fields($parser);
     foreach ($fields as $name => $def) {
@@ -490,6 +517,21 @@ function datapoint_ahah_source_configuration() {
   exit;
 }
 
+function _datapoint_admin_edit_source_type($form_state, $type) {
+  $type = datapoint_source_type($type);
+  return _datapoint_admin_add_source_type_configure($form_state, $type['parser'], $type['content_type'], $type);
+}
+
+function _datapoint_admin_edit_source_type_submit($form, $form_state) {
+  $configuration = source_type_configuration_from_form_values($form_state['values']);
+  datapoint_add_source_type($configuration, TRUE);
+
+  drupal_set_message(t('The datapoint source type "!name" has been updated', array(
+    '!name' => $configuration['name'],
+  )));
+  drupal_goto('admin/content/datapoint/source-types');
+}
+
 function datapoint_export_source_type($type) {
   $source_type = datapoint_source_type($type);
   if ($source_type) {
@@ -497,6 +539,95 @@ function datapoint_export_source_type($type) {
   }
   else {
     drupal_not_found();
+  }
+}
+
+function _datapoint_admin_edit_source($form_state, $sid) {
+  $source = datapoint_source($sid);
+  drupal_set_title($source['name']);
+
+  $form = array(
+    'sid' => array(
+      '#type' => 'value',
+      '#value' => $sid,
+    ),
+  );
+
+  $form['source_type'] = array(
+    '#type' => 'item',
+    '#title' => t('Source type'),
+    '#value' => l($source['type'], 'admin/content/datapoint/source-type/' . $source['type']),
+  );
+
+  $form['managed'] = array(
+    '#type' => 'item',
+    '#title' => t('Managed'),
+    '#value' => $source['managed']?t('Yes'):t('No'),
+  );
+
+  $source_type = datapoint_source_type($source['source_type']);
+  $info = datapoint_parser_info($source_type['parser']);
+  if (isset($info['source configuration'])) {
+    $conf_form = call_user_func($info['source configuration'], $source['source configuration']);
+  }
+  else {
+    $conf_form = array();
+  }
+
+  $form['configuration'] = $conf_form;
+
+  $form['last_update'] = array(
+    '#type' => 'item',
+    '#title' => t('Last update'),
+    '#value' => $source['last_update']?format_date($source['last_update']):t('Not updated yet.'),
+  );
+
+  _datapoint_recursively_disable_form($form);
+
+  $form['pinged'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Pinged'),
+    '#default_value' => $source['pinged'],
+    '#description' => t('Check the pinged-box to prioritize the source at next cron run.')
+  );
+
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Save'),
+  );
+  return $form;
+}
+
+function _datapoint_admin_edit_source_submit($form, $form_state) {
+  $values = $form_state['values'];
+  $source = datapoint_source($values['sid']);
+
+  // Only allow updates of pinged-state when the source is managed
+  if ($source['managed']) {
+    datapoint_save_source(array(
+      'sid' => $values['sid'],
+      'pinged' => $values['pinged'],
+    ));
+  }
+  else {
+    $info = datapoint_parser_info($source['parser']);
+    if (isset($info['source configuration submit'])) {
+      $configuration = call_user_func($info['source configuration submit'], $values);
+    }
+    else {
+      $configuration = array();
+    }
+    $source['source configuration'] = $configuration;
+    datapoint_save_source($source);
+  }
+}
+
+function _datapoint_recursively_disable_form(&$form) {
+  foreach ($form as $key => &$def) {
+    if (substr($key, 0, 1)!=='#') {
+      $def['#disabled'] = TRUE;
+      _datapoint_recursively_disable_form($def);
+    }
   }
 }
 
