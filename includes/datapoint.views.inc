@@ -134,23 +134,23 @@ function datapoint_views_data() {
     if (!is_callable($module . '_views_api')) {
       $data[$module . '_vertex'] = datapoint_automatic_views_integration($module);
     }
-    
+
     //Add the vertex join to the datapoint table
     $data['datapoint']['table']['join'][$module . '_vertex'] = array(
       'left_field' => 'vid',
       'field' => 'vid',
     );
-    
+
     drupal_alter('datapoint_vertex_views_integration', $mview, $module . '_vertex');
   }
-  
+
   return $data;
 }
 
 function datapoint_automatic_views_integration($module) {
   module_load_include('inc', 'datapoint', 'datapoint.vertex-install');
   $schema = datapoint_vertex_module_fields($module);
-  
+
   $mview = array();
   $mview['table'] = array(
     'group' => 'Datapoint',
@@ -165,7 +165,7 @@ function datapoint_automatic_views_integration($module) {
       ),
     )
   );
-  
+
   $mview['vid'] = array(
     'title' => 'Vertex id',
     'help' => 'The id of the vertex',
@@ -174,7 +174,7 @@ function datapoint_automatic_views_integration($module) {
       'click sortable' => TRUE,
     ),
   );
-  
+
   $mview['pid'] = array(
     'title' => 'Point id',
     'help' => 'The id of the point that the vertex belongs to',
@@ -183,7 +183,7 @@ function datapoint_automatic_views_integration($module) {
       'click sortable' => TRUE,
     ),
   );
-  
+
   $mview['valid_from'] = array(
     'title' => 'Valid from',
     'help' => 'The time the vertex is valid from',
@@ -209,7 +209,7 @@ function datapoint_automatic_views_integration($module) {
       ),
       'add_some' => array('greeting'=>'hi'),
     );
-    
+
     switch ($def['type']) {
       case 'int':
         $vfield['filter']['handler'] = 'views_handler_filter_numeric';
@@ -227,14 +227,14 @@ function datapoint_automatic_views_integration($module) {
         $vfield['argument']['handler'] = 'views_handler_argument_date';
       break;
     }
-    
+
     if (isset($def['#views'])) {
       datapoint_merge_views_field($vfield, $def['#views']);
     }
-    
+
     $mview[$name] = $vfield;
   }
-  
+
   return $mview;
 }
 

@@ -1,4 +1,5 @@
 <?php
+// $Id$
 
 function datapoint_install() {
   drupal_install_schema('datapoint');
@@ -167,13 +168,13 @@ function datapoint_schema() {
 
 function datapoint_update_1() {
   $ret = array();
-  
+
   $ret[] = update_sql("ALTER TABLE {datapoint}
     ADD INDEX vid(vid),
     ADD INDEX external_id(sid,external_id),
     ADD INDEX nid(nid),
     ADD INDEX dirty(dirty)");
-  
+
   return $ret;
 }
 

@@ -1,4 +1,5 @@
 <?php
+// $Id$
 
 function datapoint_yahooweather_vertex_schema() {
   return array(

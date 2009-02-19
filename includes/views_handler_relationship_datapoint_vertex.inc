@@ -1,5 +1,6 @@
 <?php
-// $Id: views_handler_relationship.inc,v 1.1 2008/09/03 19:21:28 merlinofchaos Exp $
+// $Id$
+
 /**
  * @file
  * Views' datapoint vertex relationship handlers.

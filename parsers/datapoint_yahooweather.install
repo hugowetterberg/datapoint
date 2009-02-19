@@ -1,4 +1,6 @@
 <?php
+// $Id$
+
 require_once(drupal_get_path('module', 'datapoint') . '/datapoint.vertex-install.inc');
 
 function datapoint_yahooweather_schema() {
@@ -16,10 +18,10 @@ function datapoint_yahooweather_uninstall() {
 
 function datapoint_yahooweather_update_1() {
   $ret = array();
-  
+
   $ret[] = update_sql("ALTER TABLE {datapoint_yahooweather_vertex}
     ADD INDEX pid(pid),
     ADD INDEX valid_from(valid_from)");
-  
+
   return $ret;
 }

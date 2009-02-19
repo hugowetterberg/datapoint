@@ -1,4 +1,5 @@
 <?php
+// $Id$
 
 function datapoint_vertex_module_fields($module) {
   module_load_include('inc', $module, $module . '.vertex');
@@ -11,7 +12,7 @@ function datapoint_vertex_module_schema($module) {
 
   $def = call_user_func($module . '_vertex_schema');
 
-  // Add the 
+  // Add the
   $fields = array(
     'vid' => array(
       'description' => t('The unique identifier for the vertex.'),

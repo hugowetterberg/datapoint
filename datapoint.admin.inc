@@ -1,8 +1,10 @@
 <?php
+// $Id$
 
 function _datapoint_admin_index_page() {
   global $pager_total, $pager_page_array;
 
+  $dest = array('query' => array('destination' => $_GET['q']));
   $page = isset($_GET['page'])?$_GET['page']:0;
   $total = db_result(db_query('SELECT COUNT(sid) FROM {datapoint_source}'));
   $page_size = 20;
@@ -21,11 +23,11 @@ function _datapoint_admin_index_page() {
 
   while ($row = db_fetch_object($res)) {
     $rows[] = array(
-      l($row->name, 'admin/content/datapoint/source/' . $row->sid) . ($row->managed?(' ' . t('(managed)')):''),
-      l($row->source_type, 'admin/content/datapoint/source-type/' . $row->source_type),
+      l($row->name, 'admin/content/datapoint/source/' . $row->sid, $dest) . ($row->managed?(' ' . t('(managed)')):''),
+      l($row->source_type, 'admin/content/datapoint/source-type/' . $row->source_type, $dest),
       ($row->last_update ? format_date($row->last_update) : t('Not updated')) .
         ($row->pinged?(' ' . t('(pinged)')):''),
-      l('Export', 'admin/content/datapoint/source/export/'. $row->sid),
+      l('Export', 'admin/content/datapoint/source/export/' . $row->sid, $dest),
     );
   }
   $out .= theme('table', $header, $rows);
@@ -40,6 +42,7 @@ function _datapoint_admin_index_page() {
 function _datapoint_admin_source_types() {
   global $pager_total, $pager_page_array;
 
+  $dest = array('query' => array('destination' => $_GET['q']));
   $page = isset($_GET['page'])?$_GET['page']:0;
   $total = db_result(db_query('SELECT COUNT(type) FROM {datapoint_source_type}'));
   $page_size = 20;
@@ -59,10 +62,10 @@ function _datapoint_admin_source_types() {
   while ($row = db_fetch_object($res)) {
     $conf = unserialize($row->configuration);
     $rows[] = array(
-      l($row->name, 'admin/content/datapoint/source-type/' . $row->type) . ($row->managed?(' ' . t('(managed)')):''),
+      l($row->name, 'admin/content/datapoint/source-type/' . $row->type, $dest) . ($row->managed?(' ' . t('(managed)')):''),
       $conf['parser'],
-      $conf['content_type'] ? $conf['content_type'] : t('None'),
-      l('Export', 'admin/content/datapoint/source-types/export/'. $row->type),
+      $conf['content_type'] ? $conf['content_type'] : '<b>' . t('No') . '</b>',
+      l('Export', 'admin/content/datapoint/source-types/export/' . $row->type, $dest),
     );
   }
   $out .= theme('table', $header, $rows);
@@ -532,16 +535,6 @@ function _datapoint_admin_edit_source_type_submit($form, $form_state) {
   drupal_goto('admin/content/datapoint/source-types');
 }
 
-function datapoint_export_source_type($type) {
-  $source_type = datapoint_source_type($type);
-  if ($source_type) {
-    return '<textarea rows="20" cols="40">' . htmlspecialchars(var_export($source_type, true)) . '</textarea>';
-  }
-  else {
-    drupal_not_found();
-  }
-}
-
 function _datapoint_admin_edit_source($form_state, $sid) {
   $source = datapoint_source($sid);
   drupal_set_title($source['name']);
@@ -620,6 +613,8 @@ function _datapoint_admin_edit_source_submit($form, $form_state) {
     $source['source configuration'] = $configuration;
     datapoint_save_source($source);
   }
+
+  drupal_set_message(t('The datapoint source "!name" was updated', array('!name'=>$source['name'])));
 }
 
 function _datapoint_recursively_disable_form(&$form) {
@@ -631,14 +626,56 @@ function _datapoint_recursively_disable_form(&$form) {
   }
 }
 
-function datapoint_export_source($sid) {
+function datapoint_export_source($form_state, $sid) {
   $source = datapoint_source($sid);
+
   if ($source) {
-    return '<textarea rows="20" cols="40">' . htmlspecialchars(var_export($source, true)) . '</textarea>';
+    drupal_set_title(t('Export of !name', array('!name'=>$source['name'])));
+    drupal_add_css(drupal_get_path('module', 'datapoint') . '/datapoint.css');
+
+    return _datapoint_export_form($source);
   }
   else {
     drupal_not_found();
   }
+}
+
+function datapoint_export_source_type($form_state, $type) {
+  $source_type = datapoint_source_type($type);
+
+  if ($source_type) {
+    drupal_set_title(t('Export of !name', array('!name'=>$source_type['name'])));
+    drupal_add_css(drupal_get_path('module', 'datapoint') . '/datapoint.css');
+
+    return _datapoint_export_form($source_type);
+  }
+  else {
+    drupal_not_found();
+  }
+}
+
+function _datapoint_export_form($data) {
+  $form = array(
+    'top_submit' => NULL,
+    'datapoint_export' => array(
+      '#type' => 'textarea',
+      '#rows' => 20,
+      '#cols' => 40,
+      '#default_value' => var_export($data, TRUE),
+      '#attributes' => array(
+        'class' => 'datapoint-export',
+      ),
+    ),
+  );
+
+  if (!empty($_GET['destination'])) {
+    $form['top_submit'] = $form['submit'] = array(
+      '#type' => 'submit',
+      '#value' => t('Ok'),
+    );
+  }
+
+  return $form;
 }
 
 /**

@@ -1,4 +1,6 @@
 <?php
+// $Id$
+
 if (!defined('NS_YAHOO_WEATHER')) {
   define('NS_YAHOO_WEATHER', 'http://xml.weather.yahoo.com/ns/rss/1.0');
 }
@@ -42,11 +44,11 @@ function _datapoint_yahooweather_fetch($source, &$result) {
 function _datapoint_yahooweather_datapoint_parseresult($data, &$source, &$result) {
   $doc = new DOMDocument();
   $doc->loadXML($data);
-  
+
   $point = $point = $result->point($source['source configuration']['city code']);
   $point->setName($source['source configuration']['city code']);
   $point->setHasNodes(FALSE);
-  
+
   $items = $doc->getElementsByTagNameNS(NS_YAHOO_WEATHER, 'forecast');
   foreach ($items as $item) {
     $time = strtotime($item->getAttribute('date'));

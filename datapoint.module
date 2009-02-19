@@ -1,4 +1,6 @@
 <?php
+// $Id$
+
 require_once('datapoint.inc');
 require_once('datapoint.vertex-install.inc');
 
@@ -184,17 +186,17 @@ function datapoint_menu() {
   );
 
   $menu['admin/content/datapoint/source-types/export/%'] = array(
-    'page callback' => 'datapoint_export_source_type',
-    'page arguments' => array(5),
-    'access arguments' => array('access content'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('datapoint_export_source_type', 5),
+    'access arguments' => array('administer datapoint sources'),
     'file' => 'datapoint.admin.inc',
     'type' => MENU_CALLBACK,
   );
 
   $menu['admin/content/datapoint/source/export/%'] = array(
-    'page callback' => 'datapoint_export_source',
-    'page arguments' => array(5),
-    'access arguments' => array('access content'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('datapoint_export_source', 5),
+    'access arguments' => array('administer datapoint sources'),
     'file' => 'datapoint.admin.inc',
     'type' => MENU_CALLBACK,
   );
