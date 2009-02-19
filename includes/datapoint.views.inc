@@ -8,12 +8,12 @@
  */
 
 /**
- * Implementation of hook_views_data()
+ * Implementation of hook_views_data().
  */
 function datapoint_views_data() {
   $data = array();
 
-  //Datapoint table
+  // Datapoint table.
 
   $data['datapoint']['table']['group']  = t('Datapoint');
 
@@ -57,7 +57,7 @@ function datapoint_views_data() {
     'field' => array(
       'handler' => 'views_handler_field',
       'click sortable' => TRUE,
-     ),
+    ),
     'sort' => array(
       'handler' => 'views_handler_sort',
     ),
@@ -108,7 +108,7 @@ function datapoint_views_data() {
     'field' => array(
       'handler' => 'views_handler_field',
       'click sortable' => TRUE,
-     ),
+    ),
     'sort' => array(
       'handler' => 'views_handler_sort',
     ),

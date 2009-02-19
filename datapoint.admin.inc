@@ -619,7 +619,7 @@ function _datapoint_admin_edit_source_submit($form, $form_state) {
 
 function _datapoint_recursively_disable_form(&$form) {
   foreach ($form as $key => &$def) {
-    if (substr($key, 0, 1)!=='#') {
+    if (drupal_substr($key, 0, 1)!=='#') {
       $def['#disabled'] = TRUE;
       _datapoint_recursively_disable_form($def);
     }
@@ -683,7 +683,7 @@ function _datapoint_export_form($data) {
  *
  * @return void
  * @author /bin/bash: niutil: command not found
- **/
+ */
 function datapoint_ping($sid) {
   db_query("UPDATE {datapoint_source} SET pinged=1 WHERE sid=%d", $sid);
 }

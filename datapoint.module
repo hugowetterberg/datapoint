@@ -4,12 +4,18 @@
 require_once('datapoint.inc');
 require_once('datapoint.vertex-install.inc');
 
+/**
+ * Implementation of hook_init().
+ */
 function datapoint_init() {
 }
 
+/**
+ * Implementation of hook_nodeapi().
+ */
 function datapoint_nodeapi(&$node, $op) {
   if ($op=='load') {
-    $res = db_query("SELECT * FROM {datapoint} WHERE nid=%s", $node->nid);
+    $res = db_query("SELECT * FROM {datapoint} WHERE nid=%d", $node->nid);
     if ($dp = db_fetch_object($res)) {
       if (!empty($dp->data)) {
         $dp->data = unserialize($dp->data);
@@ -22,6 +28,9 @@ function datapoint_nodeapi(&$node, $op) {
   }
 }
 
+/**
+ * Implementation of hook_cron().
+ */
 function datapoint_cron() {
   set_time_limit(0);
   require_once('datapoint.admin.inc');
@@ -35,7 +44,7 @@ function datapoint_cron() {
       last_update ASC";
   $param = $time-(60*30);
 
-  //Update sources that never have been updated or haven't been updated in half an hour, limit to five
+  // Update sources that never have been updated or haven't been updated in half an hour, limit to five.
   while ($res = db_query_range($query, $param, $offset * 25, ($offset + 1) * 25)) {
     if ($o = db_fetch_object($res)) {
       do {
@@ -53,10 +62,10 @@ function datapoint_cron() {
     $offset = $offset + 1;
   }
 
-  //Update and create nodes
+  // Update and create nodes.
   datapoint_update_nodes();
 
-  //Clean up sources
+  // Clean up sources.
   module_invoke_all('datapoint_cleanup');
 }
 
@@ -83,7 +92,7 @@ function datapoint_update_source($sid, $since_last_update=NULL) {
 
     $parser = datapoint_parser_info($source['parser']);
 
-    //Check if it should be updated
+    // Check if it should be updated.
     if (
       (is_callable($parser['update check']) && !call_user_func($parser['update check'], $since_last_update, $source)) ||
       (isset($parser['update limit']) && ((int)$parser['update limit']) > $since_last_update)
@@ -91,17 +100,17 @@ function datapoint_update_source($sid, $since_last_update=NULL) {
       return FALSE;
     }
 
-    //Fetch the new data and update the source
+    // Fetch the new data and update the source.
     if (is_callable($parser['fetch'])) {
       require_once('datapoint.inc');
       $results = new DatapointResults($source);
       $done = call_user_func($parser['fetch'], $source, $results);
 
-      // Store the results from the fetch
+      // Store the results from the fetch.
       datapoint_store($source, $results);
 
       if ($done !== FALSE) {
-        // Mark the source as updated, and clear ping flag
+        // Mark the source as updated, and clear ping flag.
         db_query("UPDATE {datapoint_source} SET pinged=0, last_update=%d WHERE sid=%d", time(), $sid);
       }
     }
@@ -113,10 +122,10 @@ function datapoint_update_source($sid, $since_last_update=NULL) {
 }
 
 /**
- * Implementation of hook_menu
+ * Implementation of hook_menu().
  *
  * @return array
- **/
+ */
 function datapoint_menu() {
   $menu = array();
   $menu['admin/content/datapoint'] = array(
@@ -213,7 +222,7 @@ function datapoint_menu() {
     'type' => MENU_CALLBACK,
   );
 
-  // Ping
+  // Ping.
   $menu['datapoint/ping/%'] = array(
     'page callback' => 'datapoint_ping',
     'page arguments' => array(2),
@@ -222,7 +231,7 @@ function datapoint_menu() {
     'type' => MENU_CALLBACK,
   );
 
-  // Ahah callbacks
+  // Ahah callbacks.
   $menu['datapoint/ahah/field-source-configuration/%/%'] = array(
     'page callback' => 'datapoint_ahah_field_source_configuration',
     'page arguments' => array(3, 4),
@@ -248,19 +257,19 @@ function datapoint_menu() {
 }
 
 /**
- * Implementation of hook_perm
+ * Implementation of hook_perm().
  *
  * @return array
- **/
+ */
 function datapoint_perm() {
   return array('administer datapoint sources');
 }
 
 /**
- * Gets the source fields that are available for the results from a specific $parser
+ * Gets the source fields that are available for the results from a specific $parser.
  *
  * @return array
- **/
+ */
 function datapoint_source_fields($parser) {
   static $cache = array();
 
@@ -324,10 +333,10 @@ function _datapoint_custom_data_source_configuration_form_submit($field, $values
 }
 
 /**
- * Common callback for all the basic source fields
+ * Common callback for all the basic source fields.
  *
  * @return mixed
- **/
+ */
 function _datapoint_source_fields(&$node, $field_name, $field, $source, $datapoint, $vertex) {
   switch ($field['source']) {
     case 'datapoint_name':
@@ -337,8 +346,8 @@ function _datapoint_source_fields(&$node, $field_name, $field, $source, $datapoi
       return $datapoint->external_id;
     break;
     default:
-      // Check if this simply is a reference to a vertex attribute
-      // TODO: Maybe this could be a viable method to get the datapoint attributes too
+      // Check if this simply is a reference to a vertex attribute.
+      // TODO: Maybe this could be a viable method to get the datapoint attributes too.
       if (isset($source['vertex_attribute'])) {
         $a = $source['vertex_attribute'];
         if (isset($vertex->$a)) {
@@ -350,10 +359,10 @@ function _datapoint_source_fields(&$node, $field_name, $field, $source, $datapoi
 }
 
 /**
- * Loads the data point source type
+ * Loads the data point source type.
  *
- * @return array Source type configuration
- **/
+ * @return array Source type configuration.
+ */
 function datapoint_source_type($type) {
   $res = db_query("SELECT * FROM {datapoint_source_type} WHERE type='%s'", $type);
   if ($source_type = db_fetch_array($res)) {
@@ -364,10 +373,10 @@ function datapoint_source_type($type) {
 }
 
 /**
- * Loads a data point source
+ * Loads a data point source.
  *
- * @return array Source configuration
- **/
+ * @return array Source configuration.
+ */
 function datapoint_source($sid) {
   static $cache = array();
 
@@ -407,10 +416,10 @@ function datapoint_by_id($id) {
 
 /**
  * Loads a datapoint from the given $source with the specified external $id.
- * The $source acts as a namespace for external id:s
+ * The $source acts as a namespace for external id:s.
  *
  * @return void
- **/
+ */
 function datapoint_by_external_id($source, $id) {
   $res = db_query("SELECT * FROM {datapoint} WHERE sid=%d AND external_id='%s'", $source, $id);
   if ($point = db_fetch_object($res)) {
@@ -420,12 +429,12 @@ function datapoint_by_external_id($source, $id) {
 }
 
 /**
- * Gets information about the parser
+ * Gets information about the parser.
  *
  * @param string $parser_module
- *  The name of the parser
+ *  The name of the parser.
  * @return array
- *  The parser definition
+ *  The parser definition.
  */
 function datapoint_parser_info($parser_module) {
   if (is_callable($parser_module . '_datapoint_parser')) {
@@ -438,7 +447,7 @@ function datapoint_parser_info($parser_module) {
  * Saves a source type configuration in the database
  *
  * @return void
- **/
+ */
 function datapoint_add_source_type($source_type, $update=FALSE) {
   // Create a configuration array with the values not supported by the schema
   $configuration = $source_type;
@@ -458,7 +467,7 @@ function datapoint_add_source_type($source_type, $update=FALSE) {
  *
  * @return int
  *  The id of the source
- **/
+ */
 function datapoint_add_source($source) {
   if (isset($source['source configuration'])) {
     $source['configuration'] = serialize($source['source configuration']);
@@ -484,7 +493,7 @@ function datapoint_save_source($source) {
  * Gets the defined source types as a associative array type=>name
  *
  * @return void
- **/
+ */
 function datapoint_source_types() {
   $types = array();
   $res = db_query("SELECT type, name FROM {datapoint_source_type}");
@@ -498,7 +507,7 @@ function datapoint_source_types() {
  * Gets the fields that datapoint feeds can access in nodes of specific type
  *
  * @return void
- **/
+ */
 function datapoint_managed_fields($content_type) {
   static $cache = array();
 
@@ -514,10 +523,10 @@ function datapoint_managed_fields($content_type) {
 }
 
 /**
- * Implementation of hook_datapoint_managed_fields_alter
+ * Implementation of hook_datapoint_managed_fields_alter().
  *
  * @return void
- **/
+ */
 function datapoint_datapoint_managed_fields_alter(&$fields, $type) {
   if ($type->has_title) {
     $fields['title'] = array(
@@ -541,7 +550,7 @@ function datapoint_datapoint_managed_fields_alter(&$fields, $type) {
  * Setter for the managed field title
  *
  * @return void
- **/
+ */
 function _datapoint_set_node_title(&$node, $field, $setter, $value) {
   $node->title = $value;
 }
@@ -550,7 +559,7 @@ function _datapoint_set_node_title(&$node, $field, $setter, $value) {
  * Setter for the managed field body
  *
  * @return void
- **/
+ */
 function _datapoint_set_node_body(&$node, $field, $setter, $value) {
   $node->body = $value;
 }
@@ -561,7 +570,7 @@ function _datapoint_set_node_body(&$node, $field, $setter, $value) {
  * TODO: This function should be enhanced with some header stuff like etag & updated since. We should stop unchanged data from reaching the parser based on some md5 or crc check.
  *
  * @return void
- **/
+ */
 function datapoint_url_fetch($url, $source, &$result, $callback) {
   // This function initializes CURL, sets the necessary CURL
   // options, executes the request and returns the results.
@@ -579,7 +588,7 @@ function datapoint_url_fetch($url, $source, &$result, $callback) {
  * programmatically this is the place to do it.
  *
  * @return void
- **/
+ */
 function datapoint_store($source, &$results) {
   set_time_limit(0);
 
@@ -690,7 +699,7 @@ function datapoint_store($source, &$results) {
  * Gets a vertex
  *
  * @return void
- **/
+ */
 function datapoint_vertex($source, $vid) {
   $vertex_table = $source['parser'] . '_vertex';
   $res = db_query("SELECT * FROM {{$vertex_table}} WHERE vid = %d", $vid);
@@ -704,7 +713,7 @@ function datapoint_vertex($source, $vid) {
  * Updates the nodes for all data points that've been marked as dirty
  *
  * @return void
- **/
+ */
 function datapoint_update_nodes() {
   // Get a maximum of fifty dirty datapoints that should have nodes updated or created
   $dirty_res = db_query_range("SELECT * FROM {datapoint} WHERE dirty=1", 0, 50);
@@ -731,7 +740,7 @@ function datapoint_update_nodes() {
  * This also sets the node association and active vertex for data points
  *
  * @return void
- **/
+ */
 function datapoint_update_node($source, $datapoint, $vertex) {
   $source_type = datapoint_source_type($source['type']);
 

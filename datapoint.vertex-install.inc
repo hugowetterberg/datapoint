@@ -43,7 +43,7 @@ function datapoint_vertex_module_schema($module) {
   $def['fields'] = $fields;
   $def['primary key'] = array('vid');
 
-  if(!isset($def['indexes'])) {
+  if (!isset($def['indexes'])) {
     $def['indexes'] = array();
   }
 

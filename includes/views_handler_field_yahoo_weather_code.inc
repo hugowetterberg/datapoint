@@ -14,7 +14,7 @@ class views_handler_field_yahoo_weather_code extends views_handler_field {
       'cloud' => $graphics_path . '/weather-cloud.png',
     );
     drupal_alter('yahoo_weather_graphics', $graphics);
-    
+
     $mappings = array(
       0 => "thunder",   10 => "rain",      20 => "sun-cloud", 30 => "sun-cloud", 41 => "snow",
       1 => "thunder",   11 => "rain",      21 => "sun-cloud", 31 => "sun",       42 => "snow",
@@ -24,11 +24,11 @@ class views_handler_field_yahoo_weather_code extends views_handler_field {
       5 => "snow-rain", 15 => "snow",      25 => "sun-cloud", 35 => "snow-rain", 46 => "snow",
       6 => "snow-rain", 16 => "snow",      26 => "cloud",     36 => "sun",       47 => "thunder",
       7 => "snow-rain", 17 => "snow",      27 => "sun-cloud", 37 => "thunder",   3200 => "sun-cloud",
-      8 => "rain",      18 => "snow-rain", 28 => "sun-cloud", 38 => "thunder",   
-      9 => "rain",      19 => "sun",       29 => "sun-cloud", 39 => "thunder",   
+      8 => "rain",      18 => "snow-rain", 28 => "sun-cloud", 38 => "thunder",
+      9 => "rain",      19 => "sun",       29 => "sun-cloud", 39 => "thunder",
     );
     drupal_alter('yahoo_weather_graphics_mapping', $graphics);
-    
+
     $code = $values->{$this->field_alias};
     $path = $graphics[$mappings[$code]];
     $title = $mappings[$code];

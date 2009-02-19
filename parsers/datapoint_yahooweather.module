@@ -54,10 +54,10 @@ function _datapoint_yahooweather_datapoint_parseresult($data, &$source, &$result
     $time = strtotime($item->getAttribute('date'));
     $vertex = new DatapointVertex($time);
     $vertex->xmlAttributes($item, array(
-      'low' =>'low',
-      'high'=>'high',
-      'text'=>'text',
-      'code'=>'code',
+      'low'  => 'low',
+      'high' => 'high',
+      'text' => 'text',
+      'code' => 'code',
     ));
     $point->addVertex($vertex);
   }

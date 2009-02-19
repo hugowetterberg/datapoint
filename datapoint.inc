@@ -5,7 +5,7 @@ class DatapointResults implements IteratorAggregate {
   private $source;
   private $points;
 
-  function DatapointResults($source) {
+  function __construct($source) {
     $this->source = $source;
     $this->points = array();
   }
@@ -37,7 +37,7 @@ class Datapoint implements IteratorAggregate {
   private $data;
   private $hasNodes = TRUE;
 
-  function Datapoint($externalId) {
+  function __construct($externalId) {
     $this->externalId = $externalId;
     $this->vertexes = array();
     $this->data = array();
@@ -111,7 +111,7 @@ class DatapointVertex {
   private $values;
   private $time;
 
-  function DatapointVertex($time) {
+  function __construct($time) {
     $this->time = $time;
   }
 
@@ -140,8 +140,7 @@ class DatapointVertex {
 class DatapointIterator implements Iterator {
   private $var = array();
 
-  public function DatapointIterator($array)
-  {
+  public function __construct($array) {
     if (is_array($array)) {
       $this->var = $array;
     }
@@ -167,7 +166,7 @@ class DatapointIterator implements Iterator {
   }
 
   public function valid() {
-    $var = $this->current() !== false;
+    $var = $this->current() !== FALSE;
     return $var;
   }
 }
