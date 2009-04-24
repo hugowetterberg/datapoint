@@ -364,12 +364,19 @@ function _datapoint_source_fields(&$node, $field_name, $field, $source, $datapoi
  * @return array Source type configuration.
  */
 function datapoint_source_type($type) {
+  static $cache = array();
+
   $res = db_query("SELECT * FROM {datapoint_source_type} WHERE type='%s'", $type);
   if ($source_type = db_fetch_array($res)) {
+    // Unserialize configuration and merge it into the source type
     $configuration = unserialize($source_type['configuration']);
-    return array_merge($source_type, $configuration);
+    $cache[$type] = array_merge($source_type, $configuration);
   }
-  return FALSE;
+  else {
+    return FALSE;
+  }
+
+  return $cache[$type];
 }
 
 /**
@@ -384,19 +391,9 @@ function datapoint_source($sid) {
     $res = db_query("SELECT * FROM {datapoint_source} WHERE sid='%d'", $sid);
 
     if ($source = db_fetch_array($res)) {
-      // Unserialize configuration
+      // Unserialize configuration and merge it into the source
       $conf = unserialize($source['configuration']);
-      // Take care of old-style sources
-      if (isset($conf['source configuration'])) {
-        $conf = $conf['source configuration'];
-      }
-      $source['source configuration'] = $conf;
-      unset($source['configuration']);
-
-      // Backwards compat
-      $source['type'] = $source['source_type'];
-
-      $cache[$sid] = $source;
+      $cache[$sid] = array_merge($source, $conf);
     }
     else {
       return FALSE;
@@ -449,14 +446,7 @@ function datapoint_parser_info($parser_module) {
  * @return void
  */
 function datapoint_add_source_type($source_type, $update=FALSE) {
-  // Create a configuration array with the values not supported by the schema
-  $configuration = $source_type;
-  $schema = drupal_get_schema('datapoint_source_type');
-  foreach ($schema['fields'] as $field => $def) {
-    unset($configuration[$field]);
-  }
-
-  $source_type['configuration'] = serialize($configuration);
+  _datapoint_prewrite($source_type, 'datapoint_source_type');
   drupal_write_record('datapoint_source_type', $source_type, $update?array('type'):NULL);
 }
 
@@ -469,11 +459,25 @@ function datapoint_add_source_type($source_type, $update=FALSE) {
  *  The id of the source
  */
 function datapoint_add_source($source) {
-  if (isset($source['source configuration'])) {
-    $source['configuration'] = serialize($source['source configuration']);
-  }
+  _datapoint_prewrite($source, 'datapoint_source');
   drupal_write_record('datapoint_source', $source);
   return $source['sid'];
+}
+
+/**
+ * Utility function to place unknown properties in a serialized blob
+ *
+ * @param string $info
+ * @param string $table
+ * @return void
+ */
+function _datapoint_prewrite(&$info, $table) {
+  $configuration = $info;
+  $schema = drupal_get_schema($table);
+  foreach ($schema['fields'] as $field => $def) {
+    unset($configuration[$field]);
+  }
+  $info['configuration'] = serialize($configuration);
 }
 
 /**
@@ -483,9 +487,7 @@ function datapoint_add_source($source) {
  * @return void
  */
 function datapoint_save_source($source) {
-  if (isset($source['source configuration'])) {
-    $source['configuration'] = serialize($source['source configuration']);
-  }
+  _datapoint_prewrite($source, 'datapoint_source');
   drupal_write_record('datapoint_source', $source, array('sid'));
 }
 

@@ -414,7 +414,7 @@ function _datapoint_source_add() {
 
 function source_configuration_from_form_values($values) {
   $configuration = array(
-    'type' => $values['source_type'],
+    'source_type' => $values['source_type'],
     'name' => $values['source_name'],
     'taxonomy' => taxonomy_preview_terms((object)$values),
   );
