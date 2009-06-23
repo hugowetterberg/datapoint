@@ -24,7 +24,7 @@ function _datapoint_yahooweather_configuration($configuration) {
   $settings['city_code'] = array(
     '#type' => 'textfield',
     '#title' => t('Yahoo city code'),
-    '#default_value' => $configuration['city_code'],
+    '#default_value' => $configuration['city code'],
   );
   return $settings;
 }
