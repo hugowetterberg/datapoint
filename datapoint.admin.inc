@@ -14,7 +14,7 @@ function _datapoint_admin_index_page() {
 
   $res = db_query_range("SELECT sid, source_type, name, pinged, last_update, managed FROM {datapoint_source}
     ORDER BY name, managed", $page*$page_size, $page_size);
-  $header = array(t('Name'), t('Type'), t('Updated'), t('Actions'));
+  $header = array(t('Name'), t('Type'), t('Updated'), array('data' => t('Operations'), 'colspan' => '2'));
   $rows = array();
 
   if ($total>$page_size) {
@@ -23,11 +23,12 @@ function _datapoint_admin_index_page() {
 
   while ($row = db_fetch_object($res)) {
     $rows[] = array(
-      l($row->name, 'admin/content/datapoint/source/' . $row->sid, $dest) . ($row->managed?(' ' . t('(managed)')):''),
+      $row->name . ($row->managed?(' ' . t('(managed)')):''),
       l($row->source_type, 'admin/content/datapoint/source-type/' . $row->source_type, $dest),
       ($row->last_update ? format_date($row->last_update) : t('Not updated')) .
         ($row->pinged?(' ' . t('(pinged)')):''),
-      l('Export', 'admin/content/datapoint/source/export/' . $row->sid, $dest),
+      l(t('Edit'), 'admin/content/datapoint/source/' . $row->sid, $dest),
+      l(t('Export'), 'admin/content/datapoint/source/export/' . $row->sid, $dest),
     );
   }
   $out .= theme('table', $header, $rows);
@@ -52,7 +53,7 @@ function _datapoint_admin_source_types() {
 
   $res = db_query_range("SELECT * FROM {datapoint_source_type}
     ORDER BY name, managed", $page*$page_size, $page_size);
-  $header = array(t('Name'), t('Parser'), t('Creates nodes'), t('Actions'));
+  $header = array(t('Name'), t('Parser'), t('Creates nodes'), t('Operations'));
   $rows = array();
 
   if ($total>$page_size) {
@@ -62,10 +63,11 @@ function _datapoint_admin_source_types() {
   while ($row = db_fetch_object($res)) {
     $conf = unserialize($row->configuration);
     $rows[] = array(
-      l($row->name, 'admin/content/datapoint/source-type/' . $row->type, $dest) . ($row->managed?(' ' . t('(managed)')):''),
+      $row->name . ($row->managed?(' ' . t('(managed)')):''),
       $conf['parser'],
       $conf['content_type'] ? $conf['content_type'] : '<b>' . t('No') . '</b>',
-      l('Export', 'admin/content/datapoint/source-types/export/' . $row->type, $dest),
+      l(t('Edit'), 'admin/content/datapoint/source-type/' . $row->type, $dest),
+      l(t('Export'), 'admin/content/datapoint/source-types/export/' . $row->type, $dest),
     );
   }
   $out .= theme('table', $header, $rows);
