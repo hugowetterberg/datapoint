@@ -744,7 +744,7 @@ function datapoint_update_nodes() {
  * @return void
  */
 function datapoint_update_node($source, $datapoint, $vertex) {
-  $source_type = datapoint_source_type($source['type']);
+  $source_type = datapoint_source_type($source['source_type']);
 
   // Check if we should create a node
   if(!empty($source_type['content_type'])) {
