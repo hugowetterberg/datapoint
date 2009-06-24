@@ -20,6 +20,14 @@ function datapoint_schema() {
         'unsigned' => TRUE,
         'not null' => TRUE,
       ),
+      'status' => array(
+        'description' => t('Set to 1 if the source is active and 0 if it\'s disabled.'),
+        'type' => 'int',
+        'size' => 'tiny',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 1,
+      ),
       'source_type' => array(
         'description' => t('The type of the source.'),
         'type' => 'varchar',
@@ -37,6 +45,7 @@ function datapoint_schema() {
       'pinged' => array(
         'description' => t('If the source has been pinged since the last update.'),
         'type' => 'int',
+        'size' => 'tiny',
         'unsigned' => TRUE,
         'not null' => TRUE,
         'default' => 0,
@@ -51,6 +60,7 @@ function datapoint_schema() {
       'managed' => array(
         'description' => t('Set to 1 if the source is managed by another module and shouldn\'t be exposed in admin.'),
         'type' => 'int',
+        'size' => 'tiny',
         'unsigned' => TRUE,
         'not null' => TRUE,
         'default' => 0,
@@ -90,6 +100,7 @@ function datapoint_schema() {
       'managed' => array(
         'description' => t('Set to 1 if the source type is managed by another module and shouldn\'t be exposed in admin.'),
         'type' => 'int',
+        'size' => 'tiny',
         'unsigned' => TRUE,
         'not null' => TRUE,
         'default' => 0,
@@ -144,6 +155,7 @@ function datapoint_schema() {
       'dirty' => array(
         'description' => t('Set to 1 if the active vertex has changed and the node needs updating, otherwise set to 0.'),
         'type' => 'int',
+        'size' => 'tiny',
         'unsigned' => TRUE,
         'not null' => TRUE,
         'default' => 0,
@@ -196,6 +208,59 @@ function datapoint_update_6002() {
     'not null' => TRUE,
     'default' => 0,
   ));
+
+  return $ret;
+}
+
+function datapoint_update_6003() {
+  $ret = array();
+
+  db_add_field($ret, 'datapoint_source', 'status', array(
+    'description' => t('Set to 1 if the source is active and 0 if it\'s disabled.'),
+    'type' => 'int',
+    'size' => 'tiny',
+    'unsigned' => TRUE,
+    'not null' => TRUE,
+    'default' => 1,
+  ));
+
+  db_change_field($ret, 'datapoint_source', 'managed', 'managed', array(
+    'description' => t('Set to 1 if the source is managed by another module and shouldn\'t be exposed in admin.'),
+    'type' => 'int',
+    'size' => 'tiny',
+    'unsigned' => TRUE,
+    'not null' => TRUE,
+    'default' => 0,
+  ));
+
+  db_change_field($ret, 'datapoint_source', 'pinged', 'pinged', array(
+    'description' => t('If the source has been pinged since the last update.'),
+    'type' => 'int',
+    'size' => 'tiny',
+    'unsigned' => TRUE,
+    'not null' => TRUE,
+    'default' => 0,
+  ));
+
+  db_change_field($ret, 'datapoint_source_type', 'managed', 'managed', array(
+    'description' => t('Set to 1 if the source type is managed by another module and shouldn\'t be exposed in admin.'),
+    'type' => 'int',
+    'size' => 'tiny',
+    'unsigned' => TRUE,
+    'not null' => TRUE,
+    'default' => 0,
+  ));
+
+  db_change_field($ret, 'datapoint', 'dirty', 'dirty', array(
+    'description' => t('Set to 1 if the active vertex has changed and the node needs updating, otherwise set to 0.'),
+    'type' => 'int',
+    'size' => 'tiny',
+    'unsigned' => TRUE,
+    'not null' => TRUE,
+    'default' => 0,
+  ));
+
+  db_add_index($ret, 'datapoint_source', 'status', array('status'));
 
   return $ret;
 }
