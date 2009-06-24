@@ -1,6 +1,24 @@
 <?php
 // $Id$
 
+function _datapoint_refresh_source($sid) {
+  set_time_limit(0);
+
+  //Update the single source
+  datapoint_update_source($sid);
+
+  // Update and create nodes.
+  datapoint_update_nodes();
+
+  // Clean up sources.
+  module_invoke_all('datapoint_cleanup');
+
+  $source = datapoint_source($sid);
+  drupal_set_message(t('Refreshed the %source source.', array('%source' => $source['name'])));
+
+  drupal_goto('admin/content/datapoint');
+}
+
 function _datapoint_admin_index_page() {
   global $pager_total, $pager_page_array;
 
@@ -14,7 +32,7 @@ function _datapoint_admin_index_page() {
 
   $res = db_query_range("SELECT sid, source_type, name, pinged, last_update, managed FROM {datapoint_source}
     ORDER BY name, managed", $page*$page_size, $page_size);
-  $header = array(t('Name'), t('Type'), t('Updated'), array('data' => t('Operations'), 'colspan' => '2'));
+  $header = array(t('Name'), t('Id'), t('Type'), t('Updated'), array('data' => t('Operations'), 'colspan' => '3'));
   $rows = array();
 
   if ($total>$page_size) {
@@ -24,10 +42,12 @@ function _datapoint_admin_index_page() {
   while ($row = db_fetch_object($res)) {
     $rows[] = array(
       $row->name . ($row->managed?(' ' . t('(managed)')):''),
+      $row->sid,
       l($row->source_type, 'admin/content/datapoint/source-type/' . $row->source_type, $dest),
       ($row->last_update ? format_date($row->last_update) : t('Not updated')) .
         ($row->pinged?(' ' . t('(pinged)')):''),
       l(t('Edit'), 'admin/content/datapoint/source/' . $row->sid, $dest),
+      l(t('Refresh'), 'admin/content/datapoint/source/refresh/' . $row->sid, $dest),
       l(t('Export'), 'admin/content/datapoint/source/export/' . $row->sid, $dest),
     );
   }
@@ -551,7 +571,7 @@ function _datapoint_admin_edit_source($form_state, $sid) {
   $form['source_type'] = array(
     '#type' => 'item',
     '#title' => t('Source type'),
-    '#value' => l($source['type'], 'admin/content/datapoint/source-type/' . $source['type']),
+    '#value' => l($source['source_type'], 'admin/content/datapoint/source-type/' . $source['source_type']),
   );
 
   $form['managed'] = array(

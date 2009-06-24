@@ -86,16 +86,15 @@ function datapoint_cron() {
 function datapoint_update_source($sid, $since_last_update=NULL) {
   $source = datapoint_source($sid);
   if ($source) {
-    if ($since_last_update===NULL) {
-      $since_last_update = time() - $source->last_update;
-    }
-
     $parser = datapoint_parser_info($source['parser']);
 
     // Check if it should be updated.
     if (
-      (is_callable($parser['update check']) && !call_user_func($parser['update check'], $since_last_update, $source)) ||
-      (isset($parser['update limit']) && ((int)$parser['update limit']) > $since_last_update)
+      $since_last_update !== NULL &&
+      (
+        (is_callable($parser['update check']) && !call_user_func($parser['update check'], $since_last_update, $source)) ||
+        (isset($parser['update limit']) && ((int)$parser['update limit']) > $since_last_update)
+      )
     ) {
       return FALSE;
     }
@@ -205,6 +204,14 @@ function datapoint_menu() {
   $menu['admin/content/datapoint/source/export/%'] = array(
     'page callback' => 'drupal_get_form',
     'page arguments' => array('datapoint_export_source', 5),
+    'access arguments' => array('administer datapoint sources'),
+    'file' => 'datapoint.admin.inc',
+    'type' => MENU_CALLBACK,
+  );
+
+  $menu['admin/content/datapoint/source/refresh/%'] = array(
+    'page callback' => '_datapoint_refresh_source',
+    'page arguments' => array(5),
     'access arguments' => array('administer datapoint sources'),
     'file' => 'datapoint.admin.inc',
     'type' => MENU_CALLBACK,
