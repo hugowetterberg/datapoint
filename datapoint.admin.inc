@@ -648,6 +648,36 @@ function _datapoint_recursively_disable_form(&$form) {
   }
 }
 
+function datapoint_delete_source_confirm($form_state, $sid) {
+  $source = datapoint_source($sid);
+
+  if ($source) {
+    $form['sid'] = array(
+      '#type' => 'value',
+      '#value' => $sid,
+    );
+
+    return confirm_form($form,
+      t('Are you sure you want to delete %name?', array('%name' => $node['name'])),
+      isset($_GET['destination']) ? $_GET['destination'] : 'admin/content/datapoint',
+      t('This action cannot be undone.'),
+      t('Delete'),
+      t('Cancel')
+    );
+  }
+  else {
+    drupal_not_found();
+  }
+}
+
+function datapoint_delete_source_confirm_submit($form, &$form_state) {
+  if ($form_state['values']['confirm']) {
+    datapoint_delete_source($form_state['values']['sid']);
+  }
+
+  $form_state['redirect'] = 'admin/content/datapoint';
+}
+
 function datapoint_export_source($form_state, $sid) {
   $source = datapoint_source($sid);
 

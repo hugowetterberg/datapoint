@@ -39,10 +39,10 @@ function datapoint_cron() {
   $offset = 0;
   $found = 0;
   $query = "SELECT sid, last_update FROM {datapoint_source}
-    WHERE last_update<%d
+    WHERE status = 1 AND last_update < %d
     ORDER BY pinged DESC,
       last_update ASC";
-  $param = $time-(60*30);
+  $param = $time - (60 * 30);
 
   // Update sources that never have been updated or haven't been updated in half an hour, limit to five.
   while ($res = db_query_range($query, $param, $offset * 25, ($offset + 1) * 25)) {
@@ -204,6 +204,14 @@ function datapoint_menu() {
   $menu['admin/content/datapoint/source/export/%'] = array(
     'page callback' => 'drupal_get_form',
     'page arguments' => array('datapoint_export_source', 5),
+    'access arguments' => array('administer datapoint sources'),
+    'file' => 'datapoint.admin.inc',
+    'type' => MENU_CALLBACK,
+  );
+
+  $menu['admin/content/datapoint/source/delete/%'] = array(
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('datapoint_delete_source_confirm', 5),
     'access arguments' => array('administer datapoint sources'),
     'file' => 'datapoint.admin.inc',
     'type' => MENU_CALLBACK,
@@ -496,6 +504,16 @@ function _datapoint_prewrite(&$info, $table) {
 function datapoint_save_source($source) {
   _datapoint_prewrite($source, 'datapoint_source');
   drupal_write_record('datapoint_source', $source, array('sid'));
+}
+
+/**
+ * Deletes a source
+ *
+ * @param array $source
+ * @return void
+ */
+function datapoint_delete_source($source) {
+  //TODO: Finish this
 }
 
 /**
