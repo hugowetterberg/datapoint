@@ -42,8 +42,17 @@ function datapoint_views_data() {
   );
 
   $data['datapoint']['sid'] = array(
-    'title' => t('Datapoint Source'),
+    'title' => t('Source Id'),
     'help'  => t('The source of the datapoint'),
+    'argument' => array(
+      'handler' => 'views_handler_argument_number',
+    ),
+    'filter' => array(
+      'handler' => 'views_handler_filter_numeric',
+    ),
+    'sort' => array(
+      'handler' => 'views_handler_sort',
+    ),
     'relationship' => array(
       'label'      => t('Datapoint Source'),
       'base'       => 'datapoint_source',
@@ -150,13 +159,14 @@ function datapoint_views_data() {
 function datapoint_automatic_views_integration($module) {
   module_load_include('inc', 'datapoint', 'datapoint.vertex-install');
   $schema = datapoint_vertex_module_fields($module);
+  $info = datapoint_parser_info($module);
 
   $mview = array();
   $mview['table'] = array(
-    'group' => 'Datapoint',
+    'group' => 'Datapoint ' . $info['name'] . ' Vertex',
     'base' => array(
       'field' => 'vid',
-      'title' => 'Datapoint vertex',
+      'title' => $info['name'] . ' vertex',
     ),
     'join' => array(
       'datapoint' => array(
@@ -199,7 +209,7 @@ function datapoint_automatic_views_integration($module) {
     ),
   );
 
-  foreach ($schema[fields] as $name => $def) {
+  foreach ($schema['fields'] as $name => $def) {
     $vfield = array(
       'title' => $name,
       'help' => $def['description'],
@@ -207,7 +217,6 @@ function datapoint_automatic_views_integration($module) {
         'handler' => 'views_handler_field',
         'click sortable' => TRUE,
       ),
-      'add_some' => array('greeting'=>'hi'),
     );
 
     switch ($def['type']) {
