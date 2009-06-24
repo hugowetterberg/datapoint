@@ -14,7 +14,7 @@ function _datapoint_refresh_source($sid) {
   module_invoke_all('datapoint_cleanup');
 
   $source = datapoint_source($sid);
-  drupal_set_message(t('Refreshed the %source source.', array('%source' => $source['name'])));
+  drupal_set_message(t('Forced a refresh of the %source source.', array('%source' => $source['name'])));
 
   drupal_goto('admin/content/datapoint');
 }

@@ -89,14 +89,14 @@ function datapoint_update_source($sid, $since_last_update=NULL) {
     $parser = datapoint_parser_info($source['parser']);
 
     // Check if it should be updated.
-    if (
-      $since_last_update !== NULL &&
-      (
-        (is_callable($parser['update check']) && !call_user_func($parser['update check'], $since_last_update, $source)) ||
-        (isset($parser['update limit']) && ((int)$parser['update limit']) > $since_last_update)
-      )
-    ) {
-      return FALSE;
+    if ($since_last_update !== NULL) {
+      if ((is_callable($parser['update check']) && !call_user_func($parser['update check'], $since_last_update, $source)) ||
+        (isset($parser['update limit']) && ((int)$parser['update limit']) > $since_last_update)) {
+          return FALSE;
+      }
+    }
+    else {
+      $source['force refresh'] = TRUE;
     }
 
     // Fetch the new data and update the source.
