@@ -5,12 +5,6 @@ require_once('datapoint.inc');
 require_once('datapoint.vertex-install.inc');
 
 /**
- * Implementation of hook_init().
- */
-function datapoint_init() {
-}
-
-/**
  * Implementation of hook_nodeapi().
  */
 function datapoint_nodeapi(&$node, $op) {
@@ -29,44 +23,73 @@ function datapoint_nodeapi(&$node, $op) {
 }
 
 /**
+ * Function used to check how much time it's left for Datapoint to run it's cron
+ */
+function _datapoint_cron_time() {
+  static $time_limit;
+
+  if (!$time_limit) {
+    $max = ini_get('max_execution_time');
+
+    if (!$max) {
+      $max = 240;
+    }
+
+    $time_limit = time() + variable_get('datapoint_cron_percentage', 0.15) * $max;
+
+    // However, check for left time, maybe some other cron processing already occured
+    $time_limit = min($time_limit, variable_get('cron_semaphore', time()) + $max);
+  }
+
+  return max($time_limit - time(), 0);
+}
+
+/**
  * Implementation of hook_cron().
  */
 function datapoint_cron() {
-  set_time_limit(0);
   require_once('datapoint.admin.inc');
 
-  $time = time();
-  $offset = 0;
-  $found = 0;
-  $query = "SELECT sid, last_update FROM {datapoint_source}
-    WHERE status = 1 AND last_update < %d
-    ORDER BY pinged DESC,
-      last_update ASC";
-  $param = $time - (60 * 30);
+  watchdog('datapoint', 'Initial time left of Datapoint cron: %left seconds', array('%left' => _datapoint_cron_time()), WATCHDOG_DEBUG);
 
-  // Update sources that never have been updated or haven't been updated in half an hour, limit to five.
-  while ($res = db_query_range($query, $param, $offset * 25, ($offset + 1) * 25)) {
-    if ($o = db_fetch_object($res)) {
-      do {
-        if (datapoint_update_source($o->sid, $time - $o->last_update)) {
-          $found = $found + 1;
-        }
-      } while ($found < 5 && $o = db_fetch_object($res));
-      if ($found > 3) {
+  // Update and create nodes.
+  while (_datapoint_cron_time() && datapoint_update_nodes(20)) {
+    //Empty on purpose - all fun stuff happens on the line above this one
+  }
+
+  if (_datapoint_cron_time()) {
+    $orig_time_limit = ini_get('max_execution_time');
+    set_time_limit(0);
+
+    $time   = time();
+    $offset = 0;
+    $found  = 0;
+    $query  = "SELECT sid, last_update FROM {datapoint_source}
+      WHERE status = 1 AND last_update < %d
+      ORDER BY pinged DESC,
+        last_update ASC";
+    $param = $time - (60 * 30);
+
+    // Update sources that never have been updated or haven't been updated in half an hour, limit to five.
+    while (_datapoint_cron_time() && $res = db_query_range($query, $param, $offset * 20, ($offset + 1) * 20)) {
+      if ($o = db_fetch_object($res)) {
+        $offset = $offset + 1;
+        do {
+          datapoint_update_source($o->sid, $time - $o->last_update);
+        } while (_datapoint_cron_time() && $o = db_fetch_object($res));
+      }
+      else {
         break;
       }
     }
-    else {
-      break;
+
+    // Clean up sources.
+    module_invoke_all('datapoint_cleanup');
+    if ($orig_time_limit) {
+      set_time_limit($orig_time_limit);
     }
-    $offset = $offset + 1;
   }
-
-  // Update and create nodes.
-  datapoint_update_nodes();
-
-  // Clean up sources.
-  module_invoke_all('datapoint_cleanup');
+  watchdog('datapoint', 'Final time left of Datapoint cron: %left seconds', array('%left' => _datapoint_cron_time()), WATCHDOG_DEBUG);
 }
 
 /**
@@ -75,10 +98,7 @@ function datapoint_cron() {
  * @param int $sid
  *  The id of the source that should be updated.
  * @param int $since_last_update
- *  Optional. The time that has passed since last update.
- *  TODO:
- *    Not really sure why this should be passed as param, as we store information about last_update,
- *    must check with @voxpelli if it's something that he uses.
+ *  Optional. The time that has passed since last update - used to let the Datapoint Source tell whether it's ready for an update or not
  *
  * @return bool
  *  Return s TRUE on success, otherwise false is returned.
@@ -741,11 +761,14 @@ function datapoint_vertex($source, $vid) {
  *
  * @return void
  */
-function datapoint_update_nodes() {
+function datapoint_update_nodes($amount = 10) {
+  $count = 0;
+
   // Get a maximum of fifty dirty datapoints that should have nodes updated or created
-  $dirty_res = db_query_range("SELECT * FROM {datapoint} WHERE dirty=1", 0, 50);
+  $dirty_res = db_query_range("SELECT * FROM {datapoint} WHERE dirty=1", 0, $amount);
 
   while($dbp = db_fetch_object($dirty_res)) {
+    $count = $count + 1;
     if (!empty($dbp->data)) {
       $dbp->data = unserialize($dbp->data);
     }
@@ -760,6 +783,8 @@ function datapoint_update_nodes() {
       }
     }
   }
+
+  return ($count < $amount) ? FALSE : TRUE;
 }
 
 /**
