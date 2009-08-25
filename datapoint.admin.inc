@@ -54,7 +54,7 @@ function _datapoint_admin_index_page() {
   $out .= theme('table', $header, $rows);
 
   if ($total>$page_size) {
-    $out = theme('pager', $page_size);
+    $out .= theme('pager', $page_size);
   }
 
   return $out;
@@ -93,7 +93,7 @@ function _datapoint_admin_source_types() {
   $out .= theme('table', $header, $rows);
 
   if ($total>$page_size) {
-    $out = theme('pager', $page_size);
+    $out .= theme('pager', $page_size);
   }
 
   return $out;
