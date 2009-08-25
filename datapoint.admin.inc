@@ -73,7 +73,7 @@ function _datapoint_admin_source_types() {
 
   $res = db_query_range("SELECT * FROM {datapoint_source_type}
     ORDER BY name, managed", $page*$page_size, $page_size);
-  $header = array(t('Name'), t('Parser'), t('Creates nodes'), t('Operations'));
+  $header = array(t('Name'), t('Parser'), t('Creates nodes'), array('data' => t('Operations'), 'colspan' => '2'));
   $rows = array();
 
   if ($total>$page_size) {
