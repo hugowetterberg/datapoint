@@ -30,9 +30,11 @@ function _datapoint_admin_index_page() {
   $pager_page_array[0] = $page;
   $pager_total[0] = $total;
 
-  $res = db_query_range("SELECT sid, source_type, name, pinged, last_update, managed FROM {datapoint_source}
+  $res = db_query_range("SELECT ds.sid, ds.source_type, ds.name, ds.pinged, ds.last_update, ds.managed, COUNT(d.pid) as dirty FROM {datapoint_source} ds
+    LEFT JOIN {datapoint} d ON d.sid = ds.sid AND d.dirty = 1
+    GROUP BY ds.sid, ds.source_type, ds.name, ds.pinged, ds.last_update, ds.managed
     ORDER BY name, managed", $page*$page_size, $page_size);
-  $header = array(t('Name'), t('Id'), t('Type'), t('Updated'), array('data' => t('Operations'), 'colspan' => '3'));
+  $header = array(t('Name'), t('Id'), t('Type'), t('Updated'), t('Queued'), array('data' => t('Operations'), 'colspan' => '3'));
   $rows = array();
 
   if ($total>$page_size) {
@@ -46,6 +48,7 @@ function _datapoint_admin_index_page() {
       l($row->source_type, 'admin/content/datapoint/source-type/' . $row->source_type, $dest),
       ($row->last_update ? format_date($row->last_update) : t('Not updated')) .
         ($row->pinged?(' ' . t('(pinged)')):''),
+      $row->dirty,
       l(t('Edit'), 'admin/content/datapoint/source/' . $row->sid, $dest),
       l(t('Refresh'), 'admin/content/datapoint/source/refresh/' . $row->sid, $dest),
       l(t('Export'), 'admin/content/datapoint/source/export/' . $row->sid, $dest),
