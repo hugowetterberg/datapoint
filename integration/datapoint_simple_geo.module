@@ -2,7 +2,7 @@
 // $Id$
 
 function datapoint_simple_geo_datapoint_managed_fields_alter(&$fields, $type) {
-  $has_position = variable_get('allow_position_'. $type->type, FALSE);
+  $has_position = variable_get('simple_geo_allow_position_'. $type->type, FALSE);
 
   if ($has_position) {
     $fields['simple_geo_position'] = array(
