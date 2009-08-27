@@ -687,6 +687,7 @@ function datapoint_export_source($form_state, $sid) {
   if ($source) {
     drupal_set_title(t('Export of !name', array('!name'=>$source['name'])));
     drupal_add_css(drupal_get_path('module', 'datapoint') . '/datapoint.css');
+    unset($source['configuration']);
 
     return _datapoint_export_form($source);
   }
@@ -701,6 +702,7 @@ function datapoint_export_source_type($form_state, $type) {
   if ($source_type) {
     drupal_set_title(t('Export of !name', array('!name'=>$source_type['name'])));
     drupal_add_css(drupal_get_path('module', 'datapoint') . '/datapoint.css');
+    unset($source_type['configuration']);
 
     return _datapoint_export_form($source_type);
   }
