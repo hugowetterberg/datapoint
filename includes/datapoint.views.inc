@@ -171,10 +171,10 @@ function datapoint_automatic_views_integration($module) {
 
   $mview = array();
   $mview['table'] = array(
-    'group' => 'Datapoint ' . $info['name'] . ' Vertex',
+    'group' => t('Datapoint !name Vertex', array('!name' => $info['name'])),
     'base' => array(
       'field' => 'vid',
-      'title' => $info['name'] . ' vertex',
+      'title' => t('!name vertex', array('!name' => $info['name'])),
     ),
     'join' => array(
       'datapoint' => array(
@@ -185,8 +185,8 @@ function datapoint_automatic_views_integration($module) {
   );
 
   $mview['vid'] = array(
-    'title' => 'Vertex id',
-    'help' => 'The id of the vertex',
+    'title' => t('Vertex id'),
+    'help'  => t('The id of the vertex'),
     'field' => array(
       'handler' => 'views_handler_field',
       'click sortable' => TRUE,
@@ -194,8 +194,8 @@ function datapoint_automatic_views_integration($module) {
   );
 
   $mview['pid'] = array(
-    'title' => 'Point id',
-    'help' => 'The id of the point that the vertex belongs to',
+    'title' => t('Point id'),
+    'help'  => t('The id of the point that the vertex belongs to'),
     'field' => array(
       'handler' => 'views_handler_field',
       'click sortable' => TRUE,
@@ -203,8 +203,8 @@ function datapoint_automatic_views_integration($module) {
   );
 
   $mview['valid_from'] = array(
-    'title' => 'Valid from',
-    'help' => 'The time the vertex is valid from',
+    'title' => t('Valid from'),
+    'help'  => t('The time the vertex is valid from'),
     'field' => array(
       'handler' => 'views_handler_field_date',
       'click sortable' => TRUE,
@@ -218,35 +218,50 @@ function datapoint_automatic_views_integration($module) {
   );
 
   foreach ($schema['fields'] as $name => $def) {
+    // Default values - title and description is set in the end to avoid cluttering the translations
     $vfield = array(
-      'title' => $name,
-      'help' => $def['description'],
       'field' => array(
         'handler' => 'views_handler_field',
         'click sortable' => TRUE,
+      ),
+      'sort' => array(
+        'handler' => 'views_handler_sort',
       ),
     );
 
     switch ($def['type']) {
       case 'int':
-        $vfield['filter']['handler'] = 'views_handler_filter_numeric';
         $vfield['argument']['handler'] = 'views_handler_argument_numeric';
+        $vfield['field']['handler']    = 'views_handler_field_numeric';
+        $vfield['filter']['handler']   = 'views_handler_filter_numeric';
       break;
       case 'varchar':
       case 'char':
       case 'text':
-        $vfield['filter']['handler'] = 'views_handler_filter_string';
         $vfield['argument']['handler'] = 'views_handler_argument_string';
+        $vfield['filter']['handler']   = 'views_handler_filter_string';
+        if ($def['type'] == 'text') {
+          unset($vfield['sort']);
+        }
       break;
       case 'datetime':
-        $vfield['field']['handler'] = 'views_handler_field_date';
-        $vfield['filter']['handler'] = 'views_handler_filter_date';
         $vfield['argument']['handler'] = 'views_handler_argument_date';
+        $vfield['field']['handler']    = 'views_handler_field_date';
+        $vfield['filter']['handler']   = 'views_handler_filter_date';
+        $vfield['sort']['handler']     = 'views_handler_sort_date';
       break;
     }
 
     if (isset($def['#views'])) {
       datapoint_merge_views_field($vfield, $def['#views']);
+    }
+
+    // Make sure we have a title and that we, if the module not has opted out, have a description.
+    if (empty($vfield['title'])) {
+      $vfield['title'] = t(drupal_ucfirst($name));
+    }
+    if (!isset($vfield['help'])) {
+      $vfield['help'] = t($def['description']);
     }
 
     $mview[$name] = $vfield;

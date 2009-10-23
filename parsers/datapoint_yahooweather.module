@@ -76,9 +76,6 @@ function datapoint_yahooweather_views_handlers() {
       'views_handler_field_yahoo_weather_code' => array(
         'parent' => 'views_handler_field',
       ),
-      'views_handler_field_yahoo_weather_temperature' => array(
-        'parent' => 'views_handler_field',
-      )
     ),
   );
 }

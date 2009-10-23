@@ -17,10 +17,7 @@ function datapoint_yahooweather_vertex_schema() {
         'not null' => TRUE,
         'default' => 0,
         '#views' => array(
-          'title' => 'Lowest',
-          'field' => array(
-            'handler' => 'views_handler_field_yahoo_weather_temperature',
-          ),
+          'title' => t('Lowest'),
         ),
       ),
       'high' => array(
@@ -30,10 +27,7 @@ function datapoint_yahooweather_vertex_schema() {
         'not null' => TRUE,
         'default' => 0,
         '#views' => array(
-          'title' => 'Highest',
-          'field' => array(
-            'handler' => 'views_handler_field_yahoo_weather_temperature',
-          ),
+          'title' => t('Highest'),
         ),
       ),
       'text' => array(
@@ -43,7 +37,7 @@ function datapoint_yahooweather_vertex_schema() {
         'not null' => TRUE,
         'default' => '',
         '#views' => array(
-          'title' => 'Weather description',
+          'title' => t('Weather description'),
         ),
       ),
       'code' => array(
@@ -53,7 +47,7 @@ function datapoint_yahooweather_vertex_schema() {
         'not null' => TRUE,
         'default' => 0,
         '#views' => array(
-          'title' => 'Weather code',
+          'title' => t('Weather code'),
           'field' => array(
             'handler' => 'views_handler_field_yahoo_weather_code',
           ),
