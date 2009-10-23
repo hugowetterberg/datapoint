@@ -263,7 +263,7 @@ function _datapoint_admin_add_source_type_configure($form_state, $parser, $conte
 }
 
 function _datapoint_admin_add_source_type_configure_validate($form, &$form_state) {
-  $configuration = source_type_configuration_from_form_values($form_state['values']);
+  $configuration = datapoint_source_type_configuration_from_form_values($form_state['values']);
   if (!preg_match('!^[a-z0-9_]+$!', $configuration['type'])) {
     form_set_error('type', t('The machine-readable name must contain only lowercase letters, numbers, and underscores.'));
   }
@@ -274,7 +274,7 @@ function _datapoint_admin_add_source_type_configure_validate($form, &$form_state
 }
 
 function _datapoint_admin_add_source_type_configure_submit($form, $form_state) {
-  $configuration = source_type_configuration_from_form_values($form_state['values']);
+  $configuration = datapoint_source_type_configuration_from_form_values($form_state['values']);
   datapoint_add_source_type($configuration);
 
   drupal_set_message(t('The datapoint source type "!name" has been added', array(
@@ -283,7 +283,7 @@ function _datapoint_admin_add_source_type_configure_submit($form, $form_state) {
   drupal_goto('admin/content/datapoint/source-types');
 }
 
-function source_type_configuration_from_form_values($values) {
+function datapoint_source_type_configuration_from_form_values($values) {
   $parser = $values['parser'];
   $content_type = $values['content_type'];
 
@@ -403,7 +403,7 @@ function _datapoint_source_add() {
   return $form;
 }
 
-function source_configuration_from_form_values($values) {
+function datapoint_source_configuration_from_form_values($values) {
   $configuration = array(
     'source_type' => $values['source_type'],
     'name' => $values['source_name'],
@@ -422,7 +422,7 @@ function source_configuration_from_form_values($values) {
 
 function _datapoint_source_add_submit($form, $form_state) {
   $values = $form_state['values'];
-  $configuration = source_configuration_from_form_values($values);
+  $configuration = datapoint_source_configuration_from_form_values($values);
   datapoint_add_source($configuration);
 }
 
@@ -517,7 +517,7 @@ function _datapoint_admin_edit_source_type($form_state, $type) {
 }
 
 function _datapoint_admin_edit_source_type_submit($form, $form_state) {
-  $configuration = source_type_configuration_from_form_values($form_state['values']);
+  $configuration = datapoint_source_type_configuration_from_form_values($form_state['values']);
   datapoint_add_source_type($configuration, TRUE);
 
   drupal_set_message(t('The datapoint source type "!name" has been updated', array(
