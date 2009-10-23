@@ -705,7 +705,6 @@ function _datapoint_export_form($data) {
  * Marks the source as pinged and gives it priority during the next update
  *
  * @return void
- * @author /bin/bash: niutil: command not found
  */
 function datapoint_ping($sid) {
   db_query("UPDATE {datapoint_source} SET pinged=1 WHERE sid=%d", $sid);
