@@ -355,47 +355,6 @@ function _datapoint_admin_add_source_type_submit($form, $form_state) {
   drupal_goto($path);
 }
 
-function _datapoint_source_type_configure($form_state, $module) {
-  $info = call_user_func($module . '_datapoint');
-  drupal_set_title(t('Configure !name', array('!name' => $info['name'])));
-  $node_type = variable_get('datapoint_' . $module . '_node_type', 0);
-
-  //Build the node type options
-  $node_types = node_get_types();
-  $node_type_options = array_merge(array(
-    '' => t('-- Select a node type'),
-  ), datapoint_source_types());
-  foreach ($node_types as $type => $type_info) {
-    $node_type_options[$type] = $type_info->name;
-  }
-
-  $form = array();
-  $form['source_type'] = array(
-    '#type' => 'hidden',
-    '#value' => $module,
-  );
-
-  $form['content_type'] = array(
-    '#type' => 'select',
-    '#title' => t('Node type'),
-    '#options' => $node_type_options,
-    '#description' => t('This is the node type that will be used to publish data points from !name', array('!name' => $info['name'])),
-    '#ahah' => array(
-      'method' => 'replace',
-      'wrapper' => 'node-configuration',
-      'path' => 'datapoint/node_configuration_ahah'
-    ),
-  );
-
-  $form['node_configuration_placeholder'] = array(
-    '#type' => 'markup',
-    '#prefix' => '<div id="node-configuration">',
-    '#suffix' => '</div>',
-    '#value' => '<span></span>',
-  );
-  return $form;
-}
-
 function _datapoint_source_add() {
   $form = array();
   drupal_add_js('misc/autocomplete.js');
