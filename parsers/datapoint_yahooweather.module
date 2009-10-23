@@ -12,7 +12,7 @@ function datapoint_yahooweather_datapoint_parser() {
   return array(
     'name' => t('Yahoo Weather'),
     'configuration' => '_datapoint_yahooweather_configuration',
-    'update limit' => 60*60*3, //Three hours
+    'update limit' => 60 * 60 * 3, //Three hours
     'source configuration'        => '_datapoint_yahooweather_configuration',
     'source configuration submit' => '_datapoint_yahooweather_configuration_submit',
     'fetch'                       => '_datapoint_yahooweather_fetch',

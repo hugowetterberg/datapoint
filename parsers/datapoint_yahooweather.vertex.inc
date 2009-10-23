@@ -1,6 +1,11 @@
 <?php
 // $Id$
 
+/**
+ * @file
+ * Definition of the Yahoo Weather Datapoint Vertex
+ */
+
 function datapoint_yahooweather_vertex_schema() {
   return array(
     'description' => 'Weather forecasts from Yahoo Weather',

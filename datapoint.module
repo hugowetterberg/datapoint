@@ -19,7 +19,7 @@ function datapoint_theme() {
  * Implementation of hook_nodeapi().
  */
 function datapoint_nodeapi(&$node, $op) {
-  if ($op=='load') {
+  if ($op == 'load') {
     $res = db_query("SELECT * FROM {datapoint} WHERE nid=%d", $node->nid);
     if ($dp = db_fetch_object($res)) {
       if (!empty($dp->data)) {
@@ -114,15 +114,14 @@ function datapoint_cron() {
  * @return bool
  *  Return s TRUE on success, otherwise false is returned.
  */
-function datapoint_update_source($sid, $since_last_update=NULL) {
+function datapoint_update_source($sid, $since_last_update = NULL) {
   $source = datapoint_source($sid);
   if ($source) {
     $parser = datapoint_parser_info($source['parser']);
 
     // Check if it should be updated.
     if ($since_last_update !== NULL) {
-      if ((is_callable($parser['update check']) && !call_user_func($parser['update check'], $since_last_update, $source)) ||
-        (isset($parser['update limit']) && ((int)$parser['update limit']) > $since_last_update)) {
+      if ((is_callable($parser['update check']) && !call_user_func($parser['update check'], $since_last_update, $source)) || (isset($parser['update limit']) && ((int)$parser['update limit']) > $since_last_update)) {
           return FALSE;
       }
     }
@@ -491,7 +490,7 @@ function datapoint_parser_info($parser_module) {
  *
  * @return void
  */
-function datapoint_add_source_type($source_type, $update=FALSE) {
+function datapoint_add_source_type($source_type, $update = FALSE) {
   _datapoint_prewrite($source_type, 'datapoint_source_type');
   drupal_write_record('datapoint_source_type', $source_type, $update?array('type'):NULL);
 }
@@ -657,7 +656,7 @@ function datapoint_store($source, &$results) {
   $pointapi_hooks = module_implements('datapoint_pointapi');
   $vertexapi_hooks = module_implements('datapoint_vertexapi');
 
-  foreach($results as $extid => $point) {
+  foreach ($results as $extid => $point) {
     foreach ($pointapi_hooks as $name) {
       $function = $name . '_datapoint_pointapi';
       $function($point, 'presave');
@@ -695,7 +694,7 @@ function datapoint_store($source, &$results) {
 
     foreach ($point as $vertex) {
       // Skip old vertexes
-      if ($only_add && $vertex->getTime()<=$last_vertex_time) {
+      if ($only_add && ($vertex->getTime() <= $last_vertex_time)) {
         continue;
       }
 
@@ -717,7 +716,7 @@ function datapoint_store($source, &$results) {
           $values[] = $attr[$cname];
         }
         // If no value was provided and the column is required
-        else if (isset($cdef['not null']) && $cdef['not null']) {
+        elseif (isset($cdef['not null']) && $cdef['not null']) {
           if (isset($cdef['default'])) { // We're saved by a default value
             $fields[] = $cname;
             $values[] = $cdef['default'];
@@ -730,7 +729,7 @@ function datapoint_store($source, &$results) {
 
       // Construct and execute the sql
       $field_string = join(',', $fields);
-      $value_placeholders = join(',', array_fill(0,count($fields), "'%s'"));
+      $value_placeholders = join(',', array_fill(0, count($fields), "'%s'"));
       db_query("INSERT INTO {{$vertex_table}}({$field_string})
         VALUES({$value_placeholders})", $values);
     }
@@ -778,7 +777,7 @@ function datapoint_update_nodes($amount = 10) {
   // Get a maximum of fifty dirty datapoints that should have nodes updated or created
   $dirty_res = db_query_range("SELECT * FROM {datapoint} WHERE dirty=1", 0, $amount);
 
-  while($dbp = db_fetch_object($dirty_res)) {
+  while ($dbp = db_fetch_object($dirty_res)) {
     $count = $count + 1;
     if (!empty($dbp->data)) {
       $dbp->data = unserialize($dbp->data);
@@ -808,7 +807,7 @@ function datapoint_update_node($source, $datapoint, $vertex) {
   $source_type = datapoint_source_type($source['source_type']);
 
   // Check if we should create a node
-  if(!empty($source_type['content_type'])) {
+  if (!empty($source_type['content_type'])) {
     $node = NULL;
     if ($datapoint->nid) {
       $node = node_load($datapoint->nid);

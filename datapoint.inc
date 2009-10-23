@@ -1,6 +1,11 @@
 <?php
 // $Id$
 
+/**
+ * @file
+ * Datapoint class definitions
+ */
+
 class DatapointResults implements IteratorAggregate {
   private $source;
   private $points;
@@ -76,7 +81,7 @@ class Datapoint implements IteratorAggregate {
     return $this->fromTime;
   }
 
-  public static function xmlAttribute($node, $name, $ns=NULL) {
+  public static function xmlAttribute($node, $name, $ns = NULL) {
     if (!empty($ns)) {
       if ($node->hasAttributeNS($ns, $name)) {
         return $node->getAttributeNS($ns, $name);
@@ -123,7 +128,7 @@ class DatapointVertex {
     $this->values[$name] = $value;
   }
 
-  public function xmlAttributes($node, $mapping, $ns=NULL) {
+  public function xmlAttributes($node, $mapping, $ns = NULL) {
     foreach ($mapping as $attribute => $value_name) {
       $av = Datapoint::xmlAttribute($node, $attribute, $ns);
       if ($av) {

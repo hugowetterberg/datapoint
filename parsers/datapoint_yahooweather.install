@@ -1,6 +1,11 @@
 <?php
 // $Id$
 
+/**
+ * @file
+ * Install file for the Yahoo Weather module.
+ */
+
 require_once(drupal_get_path('module', 'datapoint') . '/datapoint.vertex-install.inc');
 
 function datapoint_yahooweather_schema() {

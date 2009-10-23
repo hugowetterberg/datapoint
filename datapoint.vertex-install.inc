@@ -1,6 +1,11 @@
 <?php
 // $Id$
 
+/**
+ * @file
+ * Controls the installation of new vertex tables
+ */
+
 function datapoint_vertex_module_fields($module) {
   module_load_include('inc', $module, $module . '.vertex');
 

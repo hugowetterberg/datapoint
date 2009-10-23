@@ -2,7 +2,8 @@
 // $Id$
 
 /**
- * Filter by node type
+ * @file
+ * Filter by source type
  */
 class views_handler_filter_datapoint_source_type extends views_handler_filter_in_operator {
   function get_value_options() {

@@ -1,6 +1,11 @@
 <?php
 // $Id$
 
+/**
+ * @file
+ * Field handler for rendering a yahoo weather code nicely.
+ */
+
 class views_handler_field_yahoo_weather_code extends views_handler_field {
   function render($values) {
     $graphics_path = drupal_get_path('module', 'datapoint_yahooweather') . '/images';

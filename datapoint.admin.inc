@@ -1,6 +1,11 @@
 <?php
 // $Id$
 
+/**
+ * @file
+ * Admin functionality for the Datapoint module
+ */
+
 function _datapoint_refresh_source($sid) {
   set_time_limit(0);
 
@@ -33,7 +38,7 @@ function _datapoint_admin_index_page() {
   $res = db_query_range("SELECT ds.sid, ds.source_type, ds.name, ds.pinged, ds.last_update, ds.managed, COUNT(d.pid) as dirty FROM {datapoint_source} ds
     LEFT JOIN {datapoint} d ON d.sid = ds.sid AND d.dirty = 1
     GROUP BY ds.sid, ds.source_type, ds.name, ds.pinged, ds.last_update, ds.managed
-    ORDER BY name, managed", $page*$page_size, $page_size);
+    ORDER BY name, managed", $page * $page_size, $page_size);
   $header = array(t('Name'), t('Id'), t('Type'), t('Updated'), t('Queued'), array('data' => t('Operations'), 'colspan' => '3'));
   $rows = array();
 
@@ -75,7 +80,7 @@ function _datapoint_admin_source_types() {
   $pager_total[0] = $total;
 
   $res = db_query_range("SELECT * FROM {datapoint_source_type}
-    ORDER BY name, managed", $page*$page_size, $page_size);
+    ORDER BY name, managed", $page * $page_size, $page_size);
   $header = array(t('Name'), t('Parser'), t('Creates nodes'), array('data' => t('Operations'), 'colspan' => '2'));
   $rows = array();
 
@@ -114,7 +119,7 @@ function _datapoint_admin_add_source_type($state) {
   //Build the node type options
   $node_types = node_get_types();
   $node_type_options = array('' => t('-- Select a node type'));
-  foreach($node_types as $type => $type_info) {
+  foreach ($node_types as $type => $type_info) {
     $node_type_options[$type] = $type_info->name;
   }
 
@@ -146,7 +151,7 @@ function _datapoint_admin_add_source_type($state) {
   return $form;
 }
 
-function _datapoint_admin_add_source_type_configure($form_state, $parser, $content_type=NULL, $type=NULL) {
+function _datapoint_admin_add_source_type_configure($form_state, $parser, $content_type = NULL, $type = NULL) {
   $form = array(
     'parser' => array(
       '#type' => 'value',
@@ -343,13 +348,16 @@ function datapoint_ahah_field_source_configuration($parser, $field) {
 
 function _datapoint_admin_add_source_type_submit($form, $form_state) {
   $values = $form_state['values'];
-  drupal_goto('admin/content/datapoint/source-types/add/' . $values['parser_type'] .
-    (!empty($values['content_type'])?'/' . $values['content_type']:''));
+  $path   = 'admin/content/datapoint/source-types/add/' . $values['parser_type'];
+  if (!empty($values['content_type'])) {
+    $path .= '/' . $values['content_type'];
+  }
+  drupal_goto($path);
 }
 
 function _datapoint_source_type_configure($form_state, $module) {
   $info = call_user_func($module . '_datapoint');
-  drupal_set_title(t('Configure !name', array('!name'=>$info['name'])));
+  drupal_set_title(t('Configure !name', array('!name' => $info['name'])));
   $node_type = variable_get('datapoint_' . $module . '_node_type', 0);
 
   //Build the node type options
@@ -357,7 +365,7 @@ function _datapoint_source_type_configure($form_state, $module) {
   $node_type_options = array_merge(array(
     '' => t('-- Select a node type'),
   ), datapoint_source_types());
-  foreach($node_types as $type => $type_info) {
+  foreach ($node_types as $type => $type_info) {
     $node_type_options[$type] = $type_info->name;
   }
 
@@ -371,8 +379,7 @@ function _datapoint_source_type_configure($form_state, $module) {
     '#type' => 'select',
     '#title' => t('Node type'),
     '#options' => $node_type_options,
-    '#description' => t('This is the node type that will be used to publish data points from !name', array(
-      '!name'=>$info['name'])),
+    '#description' => t('This is the node type that will be used to publish data points from !name', array('!name' => $info['name'])),
     '#ahah' => array(
       'method' => 'replace',
       'wrapper' => 'node-configuration',
@@ -477,7 +484,7 @@ function datapoint_ahah_custom_node_configuration() {
       '#value' => '<span></span>',
     );
   }
-  else if (empty($type_name)) {
+  elseif (empty($type_name)) {
     $set = array(
       '#value' => '<div class="message notice message-notice">' .
         t('Please select a source type before customizing node settings') . '</span>',
@@ -639,12 +646,12 @@ function _datapoint_admin_edit_source_submit($form, $form_state) {
     datapoint_save_source($source);
   }
 
-  drupal_set_message(t('The datapoint source "!name" was updated', array('!name'=>$source['name'])));
+  drupal_set_message(t('The datapoint source "!name" was updated', array('!name' => $source['name'])));
 }
 
 function _datapoint_recursively_disable_form(&$form) {
   foreach ($form as $key => &$def) {
-    if (drupal_substr($key, 0, 1)!=='#') {
+    if (drupal_substr($key, 0, 1) !== '#') {
       $def['#disabled'] = TRUE;
       _datapoint_recursively_disable_form($def);
     }
@@ -685,7 +692,7 @@ function datapoint_export_source($form_state, $sid) {
   $source = datapoint_source($sid);
 
   if ($source) {
-    drupal_set_title(t('Export of !name', array('!name'=>$source['name'])));
+    drupal_set_title(t('Export of !name', array('!name' => $source['name'])));
     drupal_add_css(drupal_get_path('module', 'datapoint') . '/datapoint.css');
     unset($source['configuration']);
 
@@ -700,7 +707,7 @@ function datapoint_export_source_type($form_state, $type) {
   $source_type = datapoint_source_type($type);
 
   if ($source_type) {
-    drupal_set_title(t('Export of !name', array('!name'=>$source_type['name'])));
+    drupal_set_title(t('Export of !name', array('!name' => $source_type['name'])));
     drupal_add_css(drupal_get_path('module', 'datapoint') . '/datapoint.css');
     unset($source_type['configuration']);
 

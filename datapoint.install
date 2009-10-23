@@ -1,6 +1,11 @@
 <?php
 // $Id$
 
+/**
+ * @file
+ * Install file for the Datapoint module
+ */
+
 function datapoint_install() {
   drupal_install_schema('datapoint');
 }
