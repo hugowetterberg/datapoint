@@ -5,6 +5,17 @@ require_once('datapoint.inc');
 require_once('datapoint.vertex-install.inc');
 
 /**
+ * Implementation of hook_theme().
+ */
+function datapoint_theme() {
+  return array(
+    'datapoint_data' => array(
+      'arguments' => array('conf' => array()),
+    ),
+  );
+}
+
+/**
  * Implementation of hook_nodeapi().
  */
 function datapoint_nodeapi(&$node, $op) {
@@ -861,4 +872,13 @@ function datapoint_views_api() {
     'api' => 2,
     'path' => drupal_get_path('module', 'datapoint') . '/includes',
   );
+}
+
+function theme_datapoint_data($conf) {
+  foreach ($conf as $key => $row) {
+    if (is_array($row)) {
+      $conf[$key] = theme('datapoint_data', $row);
+    }
+  }
+  return theme('item_list', $conf);
 }

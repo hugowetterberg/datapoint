@@ -94,6 +94,14 @@ function datapoint_views_data() {
     ),
   );
 
+  $data['datapoint']['data'] = array(
+    'title' => t('Data'),
+    'help' => t('The configuration data of the datapoint - will need to be styled.'),
+    'field' => array(
+      'handler' => 'views_handler_field_datapoint_data',
+    ),
+  );
+
   //Datapoint source table
   $data['datapoint_source']['table']['group']  = t('Datapoint');
 
@@ -273,6 +281,10 @@ function datapoint_views_handlers() {
       'path' => drupal_get_path('module', 'datapoint') . '/includes',
     ),
     'handlers' => array(
+      // field
+      'views_handler_field_datapoint_data' => array(
+        'parent' => 'views_handler_field',
+      ),
       // filters
       'views_handler_filter_datapoint_source_type' => array(
         'parent' => 'views_handler_filter_in_operator',
